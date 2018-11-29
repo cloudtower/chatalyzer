@@ -71,7 +71,7 @@ def get_activity_raw():
 
     db_conn, db_cursor = getdbconnection()
 
-    return json.dumps(list(db_cursor.execute(sql, params)))
+    return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM '%s'" % (table_prefix + '-act'))),list(db_cursor.execute(sql, params))))
 
 
 @server.route("/api/abn")
@@ -98,7 +98,7 @@ def get_activity_by_name():
         return json.dumps(([el[0] for el in db_output], output))
     else:
         db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s' GROUP BY name ORDER BY %s %s" % ((table_prefix + '-act'),atc_return_order[sort],sql_asc_bool[asc])))
-        return json.dumps(db_output)
+        return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '%s' GROUP BY name)" % (table_prefix + '-act'))),db_output))
 
     db_conn.close()
 
@@ -404,13 +404,17 @@ def get_usage_by_character():
 
     if chartype == "emoji":
         db_output = list(db_cursor.execute("SELECT word, SUM(isemoji) as usage FROM '%s' WHERE isemoji=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'),return_order[sort],sql_asc_bool[asc],str(pagesize),str(pagenumber * pagesize))))
+        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isemoji=1 GROUP BY word)" % (table_prefix + '-ubw'))),db_output)
     elif chartype == "puncts":
         db_output = list(db_cursor.execute("SELECT word, SUM(ispunct) as usage FROM '%s' WHERE ispunct=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'),return_order[sort],sql_asc_bool[asc],str(pagesize),str(pagenumber * pagesize))))
+        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE ispunct=1 GROUP BY word)" % (table_prefix + '-ubw'))),db_output)
     elif chartype == "uncat":
         db_output = list(db_cursor.execute("SELECT word, SUM(isuncat) as usage FROM '%s' WHERE isuncat=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'),return_order[sort],sql_asc_bool[asc],str(pagesize),str(pagenumber * pagesize))))
         db_output = [(str(c[0]) + " = " + (str((c[0].encode("ascii","namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii","backslashreplace").lower())[3:-1], c[1]) for c in db_output]
+        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isuncat=1 GROUP BY word)" % (table_prefix + '-ubw'))),db_output)
     else:
         db_output = list(db_cursor.execute("SELECT word, SUM(isword) as usage FROM '%s' WHERE isword=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'),return_order[sort],sql_asc_bool[asc],str(pagesize),str(pagenumber * pagesize))))
+        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isword=1 GROUP BY word)" % (table_prefix + '-ubw'))),db_output)
 
     db_conn.close()
 

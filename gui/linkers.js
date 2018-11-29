@@ -84,17 +84,16 @@ function usagebyword() {
 function updatetable(tbody, message) {
     tbody.innerHTML = "";
     var content = JSON.parse(message);
+    var table = tbody.parentNode;
+    table.length = content[0][0];
+    content = content[1];
+    table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)),table.length) + " of " + table.length;
     if (content.length != 0) { tbody.parentNode.parentNode.style.visibility = "visible"; }
     for (i = 0; i < content.length; i++) {
         var row = tbody.insertRow(i);
         for (j = 0; j < content[i].length; j++) {
             row.insertCell(j).innerHTML = content[i][j];
         }
-    }
-    var table = tbody.parentNode;
-    table.pagenum = Math.max(table.pagenum, 0);
-    if (content.length < table.pagesize) {
-        table.pagenum -= 1;
     }
 }
 
@@ -105,17 +104,50 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     var body = document.createElement("tbody");
     var div = document.createElement("div");
     var btndiv = document.createElement("div");
-    var forwardbtn = createbtn(">", function () { table.pagenum += 1; table.querySelector("tbody").scrollTop = 0; table.refresh() });
-    var backwardbtn = createbtn("<", function () { table.pagenum -= 1; table.querySelector("tbody").scrollTop = 0; table.refresh() });
+    var numinput_div = document.createElement("div");
+    numinput_div.setAttribute("class","buttonlike")
+    numinput_div.setAttribute("style","margin-left: 6px; margin-right: 3px");
+    var numinput_label = document.createElement("span");
+    numinput_label.setAttribute("style","padding: 7px; padding-left: 12px");
+    numinput_label.innerHTML = "Page number:";
     var numinput = document.createElement("input");
     numinput.setAttribute("class", "btn");
     numinput.setAttribute("type", "text");
     numinput.setAttribute("style", "width: 50px; border-color: #444444");
-    numinput.value = 50;
-    numinput.addEventListener("change", (function () { table.pagesize = numinput.value; table.refresh() }));
+    numinput.value = 1;
+    numinput.addEventListener("change", (function () { table.pagenum = (numinput.value - 1); table.pagenum = Math.max(table.pagenum, 0); table.pagenum = Math.min(table.pagenum,(Math.trunc(table.length / table.pagesize))); table.refresh() }));
+    numinput_div.appendChild(numinput_label);
+    numinput_div.appendChild(numinput);
+    var sizeinput_div = document.createElement("div");
+    sizeinput_div.setAttribute("class","buttonlike")
+    sizeinput_div.setAttribute("style","margin-left: 3px; margin-right: 6px");
+    var sizeinput_label = document.createElement("span");
+    sizeinput_label.setAttribute("style","padding: 7px; padding-left: 12px");
+    sizeinput_label.innerHTML = "Page size:";
+    var sizeinput = document.createElement("input");
+    sizeinput.setAttribute("class", "btn");
+    sizeinput.setAttribute("type", "text");
+    sizeinput.setAttribute("style", "width: 100px; border-color: #444444");
+    sizeinput.value = 50;
+    sizeinput.addEventListener("change", (function () { table.pagesize = sizeinput.value; table.pagesize = Math.max(table.pagesize, 1); table.pagesize = Math.min(table.pagesize, table.length); table.refresh() }));
+    sizeinput_div.appendChild(sizeinput_label);
+    sizeinput_div.appendChild(sizeinput);
+    var checkbounds_and_set = function () {
+        table.pagenum = Math.max(table.pagenum,0); table.pagenum = Math.min(table.pagenum,(Math.trunc(table.length / table.pagesize)));
+        table.querySelector("tbody").scrollTop = 0;
+        numinput.value = (table.pagenum + 1);
+        table.refresh()
+    }
+    var forwardbtn = createbtn(">", function () { table.pagenum++; checkbounds_and_set() });
+    var backwardbtn = createbtn("<", function () { table.pagenum--; checkbounds_and_set() });
+    var lengthdisplay = document.createElement("span");
+    lengthdisplay.setAttribute("style","padding: 6px 12px; width: 200px")
+    table.lengthdisplay = lengthdisplay;
     btndiv.appendChild(backwardbtn);
-    btndiv.appendChild(numinput);
+    btndiv.appendChild(numinput_div);
+    btndiv.appendChild(sizeinput_div);
     btndiv.appendChild(forwardbtn);
+    btndiv.appendChild(lengthdisplay);
     btndiv.setAttribute("align", "center");
     div.style.visibility = "hidden";
     head.innerHTML = header;
@@ -129,11 +161,13 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     table.refresh = function () { makeapicall(table.url + "&sortby=" + table.sort_by + "&asc=" + table.asc + "&pagenumber=" + table.pagenum + "&pagesize=" + table.pagesize + "&filters=" + JSON.stringify(table.filters), function (message) { updatetable(table.getElementsByTagName("tbody")[0], message) }) };
     table.pagenum = 0;
     table.pagesize = 50;
+    table.length = 0;
     table.filters = {};
     table.setAttribute("style", "margin-bottom: 10px")
     div.appendChild(table);
     div.appendChild(btndiv);
     data_div.appendChild(div);
+    console.log(table.pagenum);
     return div;
 }
 
