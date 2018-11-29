@@ -1,0 +1,8 @@
+*/.vscode
+.vscode
+/engine/__pycache__
+/deprecated
+*.db
+/gui/node_modules
+/engine/dist
+/engine/build

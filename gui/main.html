@@ -1,0 +1,50 @@
+<html>
+
+<head>
+    <script>
+        var $ = jQuery = require("jquery")
+    </script>
+    <script src="node_modules/moment/moment.js"></script>
+    <script src="node_modules/chart.js/dist/Chart.js"></script>
+    <script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="node_modules/jquery/dist/jquery.js"></script>
+    <script src="node_modules/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="node_modules/daterangepicker/daterangepicker.js"></script>
+    <script src="node_modules/bootstrap-multiselect/dist/js/bootstrap-multiselect.js"></script>
+    <script src="linkers.js"></script>
+    <script>
+        var dialog = require('electron').remote.dialog;
+        var api_url = "http://127.0.0.1:5000/api/";
+        getloadedfile();
+    </script>
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="node_modules/daterangepicker/daterangepicker.css">
+    <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
+    <link rel="stylesheet" href="node_modules/bootstrap-multiselect/dist/css/bootstrap-multiselect.css">
+    <link rel="stylesheet" href="main_style.css">
+</head>
+
+<body>
+    <div id="controls">
+        <div style="margin: 5px" id="primary_controls">
+            <button class="btn" onclick="activitybyname()">Activity by Name</button>
+            <button class="btn" onclick="activitybyweekday()">Activity by Weekday</button>
+            <button class="btn" onclick="activitybydaytime()">Activity by Daytime</button>
+            <button class="btn" onclick="activitybytime()">Activity over Time</button>
+            <button class="btn" onclick="activityraw()">Activity raw Data</button>
+            <button class="btn" onclick="usagebyword()">Usage by Word</button>
+            <div class="buttonlike">
+                <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
+                <select class="form-control btn" id="langmain" onchange="switchlang()">
+                    <option>en</option>
+                    <option>de</option>
+                </select>
+            </div>
+            <button class="btn" onclick="pickfile()">Pick File</button>
+            <div class="btn" style="background-color: #ffffff">Loaded File: <span id="current_file_display"></span></div>
+        </div>
+    </div>
+    <div id="main_data"></div>
+</body>
+
+</html>

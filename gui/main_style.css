@@ -1,0 +1,60 @@
+body {
+    background-color: #333333;
+}
+
+#main_data {
+    margin: 20px;
+    height: 70%;
+}
+
+#controls {
+    margin: 20px;
+    display: block
+}
+
+.table-wrap {
+    background-color: #ffffff;
+    margin-top: 10px;
+    padding-bottom: 10px;
+}
+
+.table-all thead, .table-all tbody, .table-all tr {
+    display:table;
+    width:100%;
+    table-layout:fixed;
+}
+
+.table-all thead {
+    width: calc( 100% - 1em );
+}
+
+.table-performance {
+    height: 200px;
+    overflow: auto;
+}
+
+.table-fixed tbody {
+    display: block;
+    height: 200px;
+    overflow: auto;
+}
+
+.secondary_control {
+    background-color: #ffffff;
+    margin: 5px;
+}
+
+#langmain {
+    max-width: 100px;
+}
+
+.btn-group > .btn:first-child {
+    margin-right: 4px;
+}
+
+.buttonlike {
+    background-color: buttonface;
+    display: inline-flex;
+    border-radius: 4px;
+    vertical-align: middle;
+}

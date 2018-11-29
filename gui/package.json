@@ -1,0 +1,29 @@
+{
+  "name": "wagui",
+  "version": "1.0.0",
+  "description": "A WhatsApp Analyzer GUI",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [
+    "Electron",
+    "WhatsApp",
+    "GUI",
+    "Analyzer"
+  ],
+  "author": "Lion Steger",
+  "devDependencies": {
+    "electron": "^3.0.6"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.5.0",
+    "bootstrap": "^3.3.7",
+    "bootstrap-multiselect": "^0.9.13-1",
+    "chart.js": "^2.7.3",
+    "daterangepicker": "^3.0.3",
+    "jquery": "^3.3.1",
+    "moment": "^2.22.2",
+    "sweetalert": "^2.1.2"
+  }
+}
