@@ -37,7 +37,6 @@ function activitybyname() {
 
 function activityraw() {
     changemode();
-    document.getElementById("main_data").innerHTML = "";
     var table = createtable("", "table-wrap", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmessage?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
@@ -81,11 +80,35 @@ function usagebyword() {
     maketablessortable(table_u);
 }
 
+function statsbyword() {
+    changemode();
+    var data_div = document.getElementById("main_data");
+    var searchdiv = document.createElement("div");
+    searchdiv.setAttribute("class","buttonlike");
+    searchdiv.setAttribute("style","margin: 5px;")
+    searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Search for word:</span>";
+    var search_input = document.createElement("input");
+    search_input.setAttribute("type","text");
+    search_input.setAttribute("class","btn form-input");
+    search_input.setAttribute("style","text-align: left");
+    searchdiv.appendChild(search_input);
+    var totalusage_div = document.createElement("div");
+    totalusage_div.setAttribute("class","buttonlike");
+    totalusage_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Total usage:</span>";
+    var totaluasge_output = document.createElement("span");
+    totaluasge_output.setAttribute("class","btn");
+    totaluasge_output.setAttribute("style","background-color: #ffffff; width: 80px");
+    totalusage_div.appendChild(totaluasge_output);
+    data_div.appendChild(searchdiv);
+    data_div.appendChild(totalusage_div);
+    search_input.addEventListener("change",(() => { makeapicall("ubw?word=" + search_input.value.toLocaleLowerCase(), ((message) => { totaluasge_output.innerHTML = message })); }));
+}
+
 function updatetable(tbody, message) {
     tbody.innerHTML = "";
     var content = JSON.parse(message);
     var table = tbody.parentNode;
-    table.length = content[0][0];
+    table.length = content[0];
     content = content[1];
     table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)),table.length) + " of " + table.length;
     if (content.length != 0) { tbody.parentNode.parentNode.style.visibility = "visible"; }
@@ -167,7 +190,6 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     div.appendChild(table);
     div.appendChild(btndiv);
     data_div.appendChild(div);
-    console.log(table.pagenum);
     return div;
 }
 
@@ -196,7 +218,6 @@ function maketablessortable(table, filterable = false) {
         table.querySelector("thead").querySelectorAll("input").forEach(input => input.addEventListener("change", (() => {
             var filters = {};
             table.querySelector("thead").querySelectorAll("input").forEach(input2 => { if (input2.value != "") { filters[input2.name] = String(encodeURI(input2.value)) } });
-            console.log("changed");
             table.filters = filters;
             table.refresh(table);
         })));
@@ -390,7 +411,6 @@ function updatechart(chart, data) {
 
 function createchart(type = 'bar') {
     var data_div = document.getElementById("main_data");
-    data_div.innerHTML = "";
     var data_canvas = document.createElement("canvas");
     data_canvas.setAttribute("style", "height: 80%")
     var chart = new Chart(data_canvas, {
@@ -424,6 +444,7 @@ function createchart(type = 'bar') {
 }
 
 function changemode() {
+    document.getElementById("main_data").innerHTML = "";
     destroyallothers();
 }
 
