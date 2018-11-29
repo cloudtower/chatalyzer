@@ -291,7 +291,7 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
         params = ["getmessages", "getall", "getchars", "getwords", "getemojis", "getpunct", "getmedia", "getlogs", "getepmsg", "getppmsg", "getwpmsg", "getepa", "getppa", "getwpa", "getepc", "getppc", "getwpc", "getcpmsg", "getapmsg", "getcpa"];
         i = 0;
         url = spec_string + url_additional;
-        checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => url += ("&" + params[i++] + "=" + input_inner.checked)));
+        checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { i++; url += ((input_inner.checked) ? "&" + params[i++] + "=true" : "" ) }));
         if (filter_names) {
             var name = select.options[select.selectedIndex].text;
             if (name != "") {

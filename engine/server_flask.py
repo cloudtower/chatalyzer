@@ -143,7 +143,6 @@ def get_activity_by_time():
         doavg = "per" in el[0]
         for el2 in el[1]:
             delta = ((datetime.datetime.strptime(el2[0],db_datetime)) - (datetime.datetime.strptime(aggr_date,db_datetime))).days
-            print(aggr_count)
             if (delta < aggr):
                 aggr_count += 1
                 aggr_sum += el2[1]
