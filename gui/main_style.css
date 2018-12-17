@@ -57,4 +57,9 @@ body {
     display: inline-flex;
     border-radius: 4px;
     vertical-align: middle;
+    margin:5px
+}
+
+.multichart {
+    margin-bottom: 50px;
 }

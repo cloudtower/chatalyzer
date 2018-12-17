@@ -25,7 +25,6 @@ def get_loaded_file():
 @server.route("/api/getnames")
 def get_names():
     global act_wait
-    db_conn, db_cursor = getdbconnection()
 
     while act_wait:
         sleep(0.1)
@@ -35,8 +34,11 @@ def get_names():
         print("[+] No Cache for act. Computing...")
         compute_activity()
 
-    return json.dumps(list(db_cursor.execute("SELECT DISTINCT name FROM '%s' ORDER BY name" % (table_prefix + '-act'))))
+    return json.dumps(find_names())
 
+def find_names():
+    db_conn, db_cursor = getdbconnection()
+    return list(db_cursor.execute("SELECT DISTINCT name FROM '%s' ORDER BY name" % (table_prefix + '-act')))
 
 @server.route("/api/actraw")
 def get_activity_raw():
@@ -122,7 +124,7 @@ def get_activity_by_daytime():
 
     db_output = activity_db_request("hour")
 
-    output = activity_filter(activity_db_pad(labels, db_output))
+    output = activity_filter(activity_db_pad([i for i in range(0,24)], db_output))
 
     return json.dumps((labels,output))
 
@@ -269,14 +271,15 @@ def activity_db_request(group_by):
     return db_output
 
 
-def activity_db_pad(labels, output):
-    for i in range(0,len(labels)):
-        if i > len(output):
-            for el in labels[i:]:
-                output.insert(i, (i,) + (0,) * (len(output) - 1))
-        if not output[i][0] == int(labels[i][:-3]):
-            print("[i] inserted!, ", output[i][0], " does not match ", labels[i])
-            output.insert(i, (i,) + (0,) * (len(output) - 1))
+def activity_db_pad(labels, output, dontsort = False):
+    if len(output) == 0:
+        return output
+    output_labels = [el[0] for el in output]
+    for el in labels:
+        if el not in output_labels:
+            output.append((el,) + (0,) * (len(output[0]) - 1))
+            output_labels.append(el)
+    output = sorted(output, key = lambda x: x[0])
     return output
 
 
@@ -440,8 +443,21 @@ def get_usage_by_word():
         compute_usage()
 
     word = param_to_string(request.args.get("word"))
-    
-    return json.dumps(list(db_cursor.execute("SELECT SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=?" % (table_prefix + '-ubw'),(word,)))[0][0])
+    mode = param_to_string(request.args.get("mode"))
+
+    if mode == "bydaytime":
+        labels = [str(i) + ":00" for i in range(0,24)]
+        return json.dumps((labels, [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,24)], list(db_cursor.execute("SELECT hour, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY hour" % (table_prefix + '-ubw'),(word,))))])]))
+    elif mode == "byweekday":
+        return json.dumps((["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,7)], list(db_cursor.execute("SELECT weekday, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY weekday" % (table_prefix + '-ubw'),(word,))))])]))
+    elif mode == "bytime":
+        return json.dumps(([],[("Usage",[(el[0],el[1]) for el in db_cursor.execute("SELECT date, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY date" % (table_prefix + '-ubw'),(word,))])]))
+    elif mode == "byname":
+        names = [el[0] for el in find_names()]
+        output = list(db_cursor.execute("SELECT name, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY name" % (table_prefix + '-ubw'),(word,)))
+        return json.dumps((names,[("Usage",[el[1] for el in activity_db_pad(names,output)])]))
+    elif mode == "total":
+        return json.dumps(list(db_cursor.execute("SELECT SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=?" % (table_prefix + '-ubw'),(word,)))[0][0])
 
 
 def compute_usage():
@@ -501,13 +517,13 @@ def compute_usage():
                         if word != "\n" and word != "":
                             word = word.lower()
                             if re.match(r'\w+', word, re.UNICODE):
-                                entry = (name_last,date_last,hour_last,weekday_last,1,0,0,0,word)
+                                entry = (name_last,day_last,hour_last,weekday_last,1,0,0,0,word)
                             elif re.match(re_lang_special_chars, word):
-                                entry = (name_last,date_last,hour_last,weekday_last,0,0,1,0,word)
+                                entry = (name_last,day_last,hour_last,weekday_last,0,0,1,0,word)
                             elif len(word) == 1 and isemoji(word):
-                                entry = (name_last,date_last,hour_last,weekday_last,0,1,0,0,word)
+                                entry = (name_last,day_last,hour_last,weekday_last,0,1,0,0,word)
                             else:
-                                entry = (name_last,date_last,hour_last,weekday_last,0,0,0,1,word)
+                                entry = (name_last,day_last,hour_last,weekday_last,0,0,0,1,word)
                                 
                             entries.append(entry)
 

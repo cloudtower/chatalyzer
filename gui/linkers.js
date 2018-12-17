@@ -48,6 +48,7 @@ function activitybyname_switch() {
     data_div.innerHTML = "";
     if (is_table) {
         deleteiffound("abn_checkboxes");
+        $(".daterangepicker").remove();
         var table_div = createtable("", "table-wrap", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0);
         var table = table_div.querySelector("table");
         table.refresh();
@@ -80,28 +81,95 @@ function usagebyword() {
     maketablessortable(table_u);
 }
 
+function append_select_to_url(param, select, value = false) {
+    var append = value ? select.options[select.selectedIndex].value : select.options[select.selectedIndex].text;
+    if (append != "") {
+        return "&" + param + "=" + String(encodeURI(append));
+    }
+    return "";
+}
+
 function statsbyword() {
     changemode();
     var data_div = document.getElementById("main_data");
     var searchdiv = document.createElement("div");
-    searchdiv.setAttribute("class","buttonlike");
-    searchdiv.setAttribute("style","margin: 5px;")
+    searchdiv.setAttribute("class", "buttonlike");
     searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Search for word:</span>";
     var search_input = document.createElement("input");
-    search_input.setAttribute("type","text");
-    search_input.setAttribute("class","btn form-input");
-    search_input.setAttribute("style","text-align: left");
+    search_input.setAttribute("type", "text");
+    search_input.setAttribute("class", "btn form-input");
+    search_input.setAttribute("style", "text-align: left");
     searchdiv.appendChild(search_input);
     var totalusage_div = document.createElement("div");
-    totalusage_div.setAttribute("class","buttonlike");
+    totalusage_div.setAttribute("class", "buttonlike");
     totalusage_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Total usage:</span>";
     var totaluasge_output = document.createElement("span");
-    totaluasge_output.setAttribute("class","btn");
-    totaluasge_output.setAttribute("style","background-color: #ffffff; width: 80px");
+    totaluasge_output.setAttribute("class", "btn");
+    totaluasge_output.setAttribute("style", "background-color: #ffffff; width: 80px");
     totalusage_div.appendChild(totaluasge_output);
     data_div.appendChild(searchdiv);
     data_div.appendChild(totalusage_div);
-    search_input.addEventListener("change",(() => { makeapicall("ubw?word=" + search_input.value.toLocaleLowerCase(), ((message) => { totaluasge_output.innerHTML = message })); }));
+    bydt_div = createchart();
+    bydt_div.setAttribute("class", "multichart");
+    chart_bydt = bydt_div.chart;
+    bywd_div = createchart();
+    bywd_div.setAttribute("class", "multichart");
+    chart_bywd = bywd_div.chart;
+    byt_div = createchart();
+    byt_div.setAttribute("class", "multichart");
+    chart_byt = byt_div.chart;
+    chart_byt.options.scales.xAxes = [{ type: "time" }];
+    byn_div = createchart();
+    //byn_div.setAttribute("class","multichart");
+    chart_byn = byn_div.chart;
+
+    bydt_name_select = add_name_filter(bydt_div, "_name_dt", true);
+    bywd_name_select = add_name_filter(bywd_div, "_name_wd", true);
+    byt_name_select = add_name_filter(byt_div, "_name_t", true);
+
+    weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
+    weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satursday", "Sunday"];
+    bydt_weekday_select = add_select(bydt_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_dt", true);
+    byn_weekday_select = add_select(byn_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_n", true);
+    byt_weekday_select = add_select(byt_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_t", true);
+
+    daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+    bywd_daytime_select = add_select(bywd_div, daytime_options, daytime_options, "Filter by daytime", "_dt_wd", true);
+    byn_daytime_select = add_select(byn_div, daytime_options, daytime_options, "Filter by daytime", "_dt_n", true);
+    byt_daytime_select = add_select(byt_div, daytime_options, daytime_options, "Filter by daytime", "_dt_t", true);
+
+    update_fun = (() => {
+        bydt_url = append_select_to_url("namefilter", bydt_name_select) + append_select_to_url("weekdayfilter", bydt_weekday_select, true);
+        bywd_url = append_select_to_url("namefilter", bywd_name_select) + append_select_to_url("daytimefilter", bywd_daytime_select);
+        byt_url = append_select_to_url("namefilter", byt_name_select) + append_select_to_url("daytimefilter", byt_daytime_select) + append_select_to_url("weekdayfilter", byt_weekday_select, true);
+        byn_url = append_select_to_url("weekdayfilter", byn_weekday_select, true) + append_select_to_url("daytimefilter", byn_daytime_select);
+        if (document.getElementById("timefilter_check_dt").checked) {
+            bydt_url += "&timefilter=" + $('#timefilter_dt').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_dt').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        }
+        if (document.getElementById("timefilter_check_wd").checked) {
+            bywd_url += "&timefilter=" + $('#timefilter_wd').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_wd').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        }
+        if (document.getElementById("timefilter_check_t").checked) {
+            byt_url += "&timefilter=" + $('#timefilter_t').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_t').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        }
+        if (document.getElementById("timefilter_check_n").checked) {
+            byn_url += "&timefilter=" + $('#timefilter_n').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_n').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        }
+        word = search_input.value.toLocaleLowerCase();
+        makeapicall("ubw?mode=total&word=" + word, ((message) => { totaluasge_output.innerHTML = message }));
+        chart_bydt.refresh("ubw?mode=bydaytime&word=" + word + bydt_url);
+        chart_bywd.refresh("ubw?mode=byweekday&word=" + word + bywd_url);
+        chart_byt.refresh("ubw?mode=bytime&word=" + word + byt_url);
+        chart_byn.refresh("ubw?mode=byname&word=" + word + byn_url);
+    });
+
+    bydt_time_select = add_time_select(bydt_div, update_fun, "_dt", true);
+    bywd_time_select = add_time_select(bywd_div, update_fun, "_wd", true);
+    byt_time_select = add_time_select(byt_div, update_fun, "_t", true);
+    byn_time_select = add_time_select(byn_div, update_fun, "_n", true);
+
+    data_div.querySelectorAll("select").forEach((select) => select.addEventListener("change", update_fun));
+    data_div.querySelectorAll("input").forEach((select) => select.addEventListener("change", update_fun));
 }
 
 function updatetable(tbody, message) {
@@ -110,7 +178,7 @@ function updatetable(tbody, message) {
     var table = tbody.parentNode;
     table.length = content[0];
     content = content[1];
-    table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)),table.length) + " of " + table.length;
+    table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)), table.length) + " of " + table.length;
     if (content.length != 0) { tbody.parentNode.parentNode.style.visibility = "visible"; }
     for (i = 0; i < content.length; i++) {
         var row = tbody.insertRow(i);
@@ -128,24 +196,24 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     var div = document.createElement("div");
     var btndiv = document.createElement("div");
     var numinput_div = document.createElement("div");
-    numinput_div.setAttribute("class","buttonlike")
-    numinput_div.setAttribute("style","margin-left: 6px; margin-right: 3px");
+    numinput_div.setAttribute("class", "buttonlike")
+    numinput_div.setAttribute("style", "margin-left: 6px; margin-right: 3px");
     var numinput_label = document.createElement("span");
-    numinput_label.setAttribute("style","padding: 7px; padding-left: 12px");
+    numinput_label.setAttribute("style", "padding: 7px; padding-left: 12px");
     numinput_label.innerHTML = "Page number:";
     var numinput = document.createElement("input");
     numinput.setAttribute("class", "btn");
     numinput.setAttribute("type", "text");
     numinput.setAttribute("style", "width: 50px; border-color: #444444");
     numinput.value = 1;
-    numinput.addEventListener("change", (function () { table.pagenum = (numinput.value - 1); table.pagenum = Math.max(table.pagenum, 0); table.pagenum = Math.min(table.pagenum,(Math.trunc(table.length / table.pagesize))); table.refresh() }));
+    numinput.addEventListener("change", (function () { table.pagenum = (numinput.value - 1); table.pagenum = Math.max(table.pagenum, 0); table.pagenum = Math.min(table.pagenum, (Math.trunc(table.length / table.pagesize))); table.refresh() }));
     numinput_div.appendChild(numinput_label);
     numinput_div.appendChild(numinput);
     var sizeinput_div = document.createElement("div");
-    sizeinput_div.setAttribute("class","buttonlike")
-    sizeinput_div.setAttribute("style","margin-left: 3px; margin-right: 6px");
+    sizeinput_div.setAttribute("class", "buttonlike")
+    sizeinput_div.setAttribute("style", "margin-left: 3px; margin-right: 6px");
     var sizeinput_label = document.createElement("span");
-    sizeinput_label.setAttribute("style","padding: 7px; padding-left: 12px");
+    sizeinput_label.setAttribute("style", "padding: 7px; padding-left: 12px");
     sizeinput_label.innerHTML = "Page size:";
     var sizeinput = document.createElement("input");
     sizeinput.setAttribute("class", "btn");
@@ -156,7 +224,7 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     sizeinput_div.appendChild(sizeinput_label);
     sizeinput_div.appendChild(sizeinput);
     var checkbounds_and_set = function () {
-        table.pagenum = Math.max(table.pagenum,0); table.pagenum = Math.min(table.pagenum,(Math.trunc(table.length / table.pagesize)));
+        table.pagenum = Math.max(table.pagenum, 0); table.pagenum = Math.min(table.pagenum, (Math.trunc(table.length / table.pagesize)));
         table.querySelector("tbody").scrollTop = 0;
         numinput.value = (table.pagenum + 1);
         table.refresh()
@@ -164,7 +232,7 @@ function createtable(attributes_table, attributes_div, header, url, sort_by) {
     var forwardbtn = createbtn(">", function () { table.pagenum++; checkbounds_and_set() });
     var backwardbtn = createbtn("<", function () { table.pagenum--; checkbounds_and_set() });
     var lengthdisplay = document.createElement("span");
-    lengthdisplay.setAttribute("style","padding: 6px 12px; width: 200px")
+    lengthdisplay.setAttribute("style", "padding: 6px 12px; width: 200px")
     table.lengthdisplay = lengthdisplay;
     btndiv.appendChild(backwardbtn);
     btndiv.appendChild(numinput_div);
@@ -239,7 +307,7 @@ function activitybydaytime() {
 function activitybytime() {
     changemode();
     var chart = createchart().chart;
-    add_act_controls(chart, "abt", true, "?placeholder=uninteresting",  true);
+    add_act_controls(chart, "abt", true, "?placeholder=uninteresting", true);
     chart.options.scales.xAxes = [{ type: "time" }];
 }
 
@@ -248,10 +316,78 @@ function switchlang() {
     makeapicall(("setlang?lang=" + langmain.options[langmain.selectedIndex].text), swal);
 }
 
+function add_name_filter(parent_div, id_additional = "", prepend = false) {
+    select = add_select(parent_div, [], [], "Filter by name", id_additional, prepend);
+    callback = function (select) {
+        return function (message) {
+            var names = JSON.parse(message);
+            for (i = 0; i < names.length; i++) {
+                var option = document.createElement("option");
+                option.innerHTML = names[i];
+                option.value = names[i];
+                select.appendChild(option);
+            }
+        }
+    }
+    makeapicall("getnames", callback(select));
+    return select;
+}
+
+function add_select(parent_div, options, labels, label, id_additional = "", prepend = false) {
+    name_select_div = document.createElement("div");
+    name_select_div.setAttribute("class", "buttonlike");
+    name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\"> " + label + ": </span>";
+    select = document.createElement("select");
+    select.setAttribute("id", "name_sel" + id_additional);
+    select.setAttribute("class", "btn form-control");
+    select.setAttribute("style", "width: 200px")
+    select.innerHTML = "<option value=\"\"></option>";
+    name_select_div.appendChild(select);
+    if (prepend) {
+        parent_div.insertBefore(name_select_div, parent_div.firstChild);
+    } else {
+        parent_div.appendChild(name_select_div);
+    }
+    for (i = 0; i < options.length; i++) {
+        var option = document.createElement("option");
+        option.innerHTML = labels[i];
+        option.value = options[i];
+        select.appendChild(option);
+    }
+    return select;
+}
+
+function add_time_select(parent_div, callback, id_additional = "", prepend = false) {
+    var timefilterdiv = document.createElement("div");
+    timefilterdiv.setAttribute("class", "btn secondary_control");
+    timefilterdiv.setAttribute("style", "width: 230px; height: 34px");
+    timefilterdiv.innerHTML = "<i style=\"font-size: 16px; padding-right: 10px\" class=\"fa\">&#xf073;</i><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 80%; border: none; padding: 0; vertical-align: top\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:6px\">"
+    if (prepend) {
+        parent_div.insertBefore(timefilterdiv, parent_div.firstChild);
+    } else {
+        parent_div.appendChild(timefilterdiv);
+    }
+
+    $('#timefilter' + id_additional).daterangepicker({
+        ranges: {
+            'Today': [moment(), moment()],
+            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+            'This Month': [moment().startOf('month'), moment().endOf('month')],
+            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')],
+            'Last Year': [moment().subtract(1, 'year').startOf('year'), moment().subtract(1, 'year').endOf('year')],
+            'This Year': [moment().startOf('year'), moment().endOf('year')]
+        },
+        "startDate": moment().subtract(1, 'month').format("MM/DD/YYYY"),
+        "endDate": moment().format("MM/DD/YYYY")
+    }, callback);
+}
+
 function add_act_controls(chart, spec_string, filter_names = true, url_additional = "?placeholder=uninteresting", aggregation_input = false) {
     var ctrl_div = document.getElementById("controls");
     var checkbox_div = document.createElement("div");
-    checkbox_div.setAttribute("style","margin: 5px")
+    checkbox_div.setAttribute("style", "margin: 5px")
     checkbox_div.setAttribute("id", spec_string + "_checkboxes");
 
     var ctype_filter_select = document.createElement("select");
@@ -292,40 +428,17 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
     checkbox_div.appendChild(percharacter_select);
     checkbox_div.appendChild(pergeneral_select);
 
-    var timefilterdiv = document.createElement("div");
-    timefilterdiv.setAttribute("class", "btn secondary_control");
-    timefilterdiv.setAttribute("style", "width: 230px; height: 34px");
-    timefilterdiv.innerHTML = "<i style=\"font-size: 16px; padding-right: 10px\" class=\"fa\">&#xf073;</i><input id=\"timefilter\" name=\"dates\" type=\"text\" style=\"width: 80%; border: none; padding: 0; vertical-align: top\"><input type=\"checkbox\" id=\"timefilter_check\" style=\"margin-left:6px\">"
-    checkbox_div.appendChild(timefilterdiv);
-
     if (filter_names) {
-        name_select_div = document.createElement("div");
-        name_select_div.setAttribute("class","buttonlike");
-        name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Filter by name:</span>";
-        select = document.createElement("select");
-        select.setAttribute("id", "name_sel");
-        select.setAttribute("class", "btn form-control");
-        select.setAttribute("style", "width: 200px")
-        select.innerHTML = "<option></option>";
-        name_select_div.appendChild(select);
-        checkbox_div.appendChild(name_select_div);
-        makeapicall("getnames", function (message) {
-            var names = JSON.parse(message);
-            for (i = 0; i < names.length; i++) {
-                var option = document.createElement("option");
-                option.innerHTML = names[i];
-                select.appendChild(option);
-            }
-        });
+        name_select = add_name_filter(checkbox_div);
     }
 
     if (aggregation_input) {
         aggr_input_div = document.createElement("div");
-        aggr_input_div.setAttribute("class","buttonlike");
+        aggr_input_div.setAttribute("class", "buttonlike");
         aggr_input_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Aggregate by days:</span>";
         aggr_input = document.createElement("input");
         aggr_input.setAttribute("id", "aggr_input");
-        aggr_input.setAttribute("type","text");
+        aggr_input.setAttribute("type", "text");
         aggr_input.setAttribute("class", "btn form-control");
         aggr_input.setAttribute("style", "width: 100px")
         aggr_input_div.appendChild(aggr_input);
@@ -346,9 +459,9 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
         params = ["getmessages", "getall", "getchars", "getwords", "getemojis", "getpunct", "getmedia", "getlogs", "getepmsg", "getppmsg", "getwpmsg", "getepa", "getppa", "getwpa", "getepc", "getppc", "getwpc", "getcpmsg", "getapmsg", "getcpa"];
         i = 0;
         url = spec_string + url_additional;
-        checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { i++; url += ((input_inner.checked) ? "&" + params[i++] + "=true" : "" ) }));
+        checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { url += ((input_inner.checked) ? "&" + params[i] + "=true" : ""); i++ }));
         if (filter_names) {
-            var name = select.options[select.selectedIndex].text;
+            var name = name_select.options[name_select.selectedIndex].text;
             if (name != "") {
                 url += "&namefilter=" + String(encodeURI(name));
             }
@@ -362,28 +475,18 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
         if (document.getElementById("timefilter_check").checked) {
             url += "&timefilter=" + $('#timefilter').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter').data("daterangepicker").endDate.format("YYYY-MM-DD")
         }
-        chart.refresh(url)
+        chart.refresh(url);
     });
 
-    ctrl_div.querySelectorAll('input').forEach(input => input.addEventListener('click', checkbox_onclick));
+    add_time_select(checkbox_div, checkbox_onclick);
+
+    checkbox_div.querySelectorAll('input').forEach(input => input.addEventListener('click', checkbox_onclick));
     if (filter_names) {
         select.addEventListener('change', checkbox_onclick);
     }
     if (aggregation_input) {
         aggr_input.addEventListener('change', checkbox_onclick);
     }
-    $('#timefilter').daterangepicker({
-        ranges: {
-            'Today': [moment(), moment()],
-            'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
-            'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-            'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-            'This Month': [moment().startOf('month'), moment().endOf('month')],
-            'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
-        },
-        "startDate": moment().subtract(1, 'month').format("MM/DD/YYYY"),
-        "endDate": moment().format("MM/DD/YYYY")
-    }, checkbox_onclick);
 
     checkbox_onclick();
 }
@@ -411,6 +514,8 @@ function updatechart(chart, data) {
 
 function createchart(type = 'bar') {
     var data_div = document.getElementById("main_data");
+    var wrapper_div = document.createElement("div");
+    wrapper_div.style.height = "100%";
     var data_canvas = document.createElement("canvas");
     data_canvas.setAttribute("style", "height: 80%")
     var chart = new Chart(data_canvas, {
@@ -437,10 +542,11 @@ function createchart(type = 'bar') {
             }
         }
     });
-    data_div.appendChild(data_canvas);
+    wrapper_div.appendChild(data_canvas);
+    data_div.appendChild(wrapper_div);
     chart.refresh = function (url) { makeapicall(url, function (message) { updatechart(chart, message) }) };
-    data_canvas.chart = chart;
-    return data_canvas;
+    wrapper_div.chart = chart;
+    return wrapper_div;
 }
 
 function changemode() {
@@ -454,6 +560,7 @@ function destroyallothers() {
     deleteiffound("abt_checkboxes");
     deleteiffound("abn_checkboxes");
     deleteiffound("abn_radiobuttons");
+    $(".daterangepicker").remove();
 }
 
 function deleteiffound(id) {
