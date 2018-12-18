@@ -156,7 +156,7 @@ function statsbyword() {
             byn_url += "&timefilter=" + $('#timefilter_n').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_n').data("daterangepicker").endDate.format("YYYY-MM-DD");
         }
         word = search_input.value.toLocaleLowerCase();
-        makeapicall("ubw?mode=total&word=" + word, ((message) => { totaluasge_output.innerHTML = message }));
+        makeapicall("ubw?mode=total&word=" + word, ((message) => { message = (message == "null" ? 0 : message); totaluasge_output.innerHTML = message }));
         chart_bydt.refresh("ubw?mode=bydaytime&word=" + word + bydt_url);
         chart_bywd.refresh("ubw?mode=byweekday&word=" + word + bywd_url);
         chart_byt.refresh("ubw?mode=bytime&word=" + word + byt_url);

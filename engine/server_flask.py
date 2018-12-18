@@ -222,8 +222,11 @@ def output_split(indexes, db_output, timemode=False, operator="", all=[]):
     else:
         return [(el[0],el[indexes[0]]) if timemode else el[indexes[0]] for el in db_output]
 
-
 def activity_db_request(group_by):
+    sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, table_prefix + '-act')
+    return db_request(sql, group_by, [])
+
+def db_request(sql, group_by, params, setand = False):
     global act_wait
 
     while act_wait:
@@ -235,22 +238,22 @@ def activity_db_request(group_by):
 
     db_conn, db_cursor = getdbconnection()
 
-    sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, table_prefix + '-act')
-
     person_filter = request.args.get("namefilter")
     if person_filter is not None:
         person_filter = HTMLParser().unescape(person_filter)
 
-    params = []
-    setand = False
     if person_filter is not None and person_filter is not "":
-        sql += " WHERE name=?"
-        setand = True
-        params = [person_filter]
+        if setand:
+            sql += " AND"
+        else:
+            sql += " WHERE"
+            setand = True
+        sql += " name=?"
+        params += [person_filter]
 
-    person_filter = request.args.get("timefilter")
-    if person_filter is not None:
-        split = person_filter.split("t")
+    time_filter = request.args.get("timefilter")
+    if time_filter is not None:
+        split = time_filter.split("t")
         try:
             date_start = datetime.datetime.strptime(split[0],"%Y-%m-%d")
             date_end = datetime.datetime.strptime(split[1],"%Y-%m-%d")
@@ -258,9 +261,30 @@ def activity_db_request(group_by):
                 sql += " AND"
             else:
                 sql += " WHERE"
+                setand = True
             sql += " date BETWEEN '%s' AND '%s'" % (date_start, date_end)
         except:
             print("[!] Not a valid date!")
+
+    weekday_filter = request.args.get("weekdayfilter")
+    if weekday_filter is not None:
+        if setand:
+            sql += " AND"
+        else:
+            sql += " WHERE"
+            setand = True
+        sql += " weekday=?"
+        params += [weekday_filter]
+
+    daytime_filter = request.args.get("daytimefilter")
+    if daytime_filter is not None:
+        if setand:
+            sql += " AND"
+        else:
+            sql += " WHERE"
+            setand = True
+        sql += " hour=?"
+        params += [daytime_filter]
 
     sql += " GROUP BY %s" % group_by
 
@@ -429,6 +453,10 @@ def get_usage_by_character():
     return json.dumps(db_output)
 
 
+def ubw_db_request(word, group_by):
+    return db_request("SELECT %s, SUM(isword) as usage FROM '%s' WHERE word=?" % (group_by, table_prefix + '-ubw'), group_by, [word], True)
+
+
 @server.route("/api/ubw")
 def get_usage_by_word():
     global ubc_wait
@@ -447,14 +475,14 @@ def get_usage_by_word():
 
     if mode == "bydaytime":
         labels = [str(i) + ":00" for i in range(0,24)]
-        return json.dumps((labels, [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,24)], list(db_cursor.execute("SELECT hour, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY hour" % (table_prefix + '-ubw'),(word,))))])]))
+        return json.dumps((labels, [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,24)], ubw_db_request(word, "hour"))])]))
     elif mode == "byweekday":
-        return json.dumps((["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,7)], list(db_cursor.execute("SELECT weekday, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY weekday" % (table_prefix + '-ubw'),(word,))))])]))
+        return json.dumps((["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,7)], ubw_db_request(word, "weekday"))])]))
     elif mode == "bytime":
-        return json.dumps(([],[("Usage",[(el[0],el[1]) for el in db_cursor.execute("SELECT date, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY date" % (table_prefix + '-ubw'),(word,))])]))
+        return json.dumps(([],[("Usage",[(el[0],el[1]) for el in ubw_db_request(word, "date")])]))
     elif mode == "byname":
         names = [el[0] for el in find_names()]
-        output = list(db_cursor.execute("SELECT name, SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=? GROUP BY name" % (table_prefix + '-ubw'),(word,)))
+        output = ubw_db_request(word, "name")
         return json.dumps((names,[("Usage",[el[1] for el in activity_db_pad(names,output)])]))
     elif mode == "total":
         return json.dumps(list(db_cursor.execute("SELECT SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=?" % (table_prefix + '-ubw'),(word,)))[0][0])
