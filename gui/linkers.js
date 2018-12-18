@@ -281,7 +281,7 @@ function maketablessortable(table, filterable = false) {
     })));
     if (filterable) {
         var inputrow = document.createElement("tr");
-        table.querySelectorAll('th').forEach(th => inputrow.innerHTML += "<th><input type=\"text\" name=\"" + th.innerHTML.replace(String.fromCharCode(9650), "").replace(String.fromCharCode(9660), "") + "\" style=\"width: 100%\"></th>");
+        table.querySelectorAll('th').forEach(th => inputrow.innerHTML += "<th><input type=\"text\" name=\"" + th.getAttribute("name") + "\" style=\"width: 100%\"></th>");
         table.querySelector('thead').appendChild(inputrow);
         table.querySelector("thead").querySelectorAll("input").forEach(input => input.addEventListener("change", (() => {
             var filters = {};

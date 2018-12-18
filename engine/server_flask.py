@@ -71,7 +71,7 @@ def get_activity_raw():
 
     db_conn, db_cursor = getdbconnection()
 
-    length = list(db_cursor.execute("SELECT COUNT(*) FROM(" + sql + ")"))[0]
+    length = list(db_cursor.execute("SELECT COUNT(*) FROM(" + sql + ")", params))[0]
 
     sql += " ORDER BY %s %s LIMIT %s OFFSET %s" % (act_columnames[sort],sql_asc_bool[asc],str(pagesize),str(pagenumber * pagesize))
 
