@@ -19,9 +19,9 @@ body {
 }
 
 .table-all thead, .table-all tbody, .table-all tr {
-    display:table;
-    width:100%;
-    table-layout:fixed;
+    display: table;
+    width: 100%;
+    table-layout: fixed;
 }
 
 .table-all thead {

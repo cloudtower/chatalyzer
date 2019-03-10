@@ -7,12 +7,13 @@ import json
 import math
 import urllib
 import sqlite3
+import binascii
 import datetime
 import unicodedata
 from time import sleep
-from html.parser import HTMLParser
 from flask import Flask
 from flask import request
+from html.parser import HTMLParser
 
 server = Flask("wa_filter_backend")
 
@@ -454,7 +455,7 @@ def get_usage_by_character():
 
 
 def ubw_db_request(word, group_by):
-    return db_request("SELECT %s, SUM(isword) as usage FROM '%s' WHERE word=?" % (group_by, table_prefix + '-ubw'), group_by, [word], True)
+    return db_request("SELECT %s, (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word=?" % (group_by, table_prefix + '-ubw'), group_by, [word], True)
 
 
 @server.route("/api/ubw")
@@ -470,22 +471,21 @@ def get_usage_by_word():
         print("[+] No Cache for ubc. Computing...")
         compute_usage()
 
-    word = param_to_string(request.args.get("word"))
+    words = json.loads(request.args.get("words"))
     mode = param_to_string(request.args.get("mode"))
 
     if mode == "bydaytime":
         labels = [str(i) + ":00" for i in range(0,24)]
-        return json.dumps((labels, [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,24)], ubw_db_request(word, "hour"))])]))
+        return json.dumps((labels, [(word,[el[1] for el in activity_db_pad([i for i in range(0,24)], ubw_db_request(word, "hour"))]) for word in words]))
     elif mode == "byweekday":
-        return json.dumps((["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], [("Usage",[el[1] for el in activity_db_pad([i for i in range(0,7)], ubw_db_request(word, "weekday"))])]))
+        return json.dumps((["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"], [(word,[el[1] for el in activity_db_pad([i for i in range(0,7)], ubw_db_request(word, "weekday"))]) for word in words]))
     elif mode == "bytime":
-        return json.dumps(([],[("Usage",[(el[0],el[1]) for el in ubw_db_request(word, "date")])]))
+        return json.dumps(([],[(word,[(el[0],el[1]) for el in ubw_db_request(word, "date")]) for word in words]))
     elif mode == "byname":
         names = [el[0] for el in find_names()]
-        output = ubw_db_request(word, "name")
-        return json.dumps((names,[("Usage",[el[1] for el in activity_db_pad(names,output)])]))
+        return json.dumps((names,[(word,[el[1] for el in activity_db_pad(names,ubw_db_request(word, "name"))]) for word in words]))
     elif mode == "total":
-        return json.dumps(list(db_cursor.execute("SELECT SUM(isword) as usage FROM '%s' WHERE isword=1 AND word=?" % (table_prefix + '-ubw'),(word,)))[0][0])
+        return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word like ?" % (table_prefix + '-ubw'),(word,)))[0][0]] for word in words])
 
 
 def compute_usage():

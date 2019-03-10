@@ -37,7 +37,7 @@ function activitybyname() {
 
 function activityraw() {
     changemode();
-    var table = createtable("", "table-wrap", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmessage?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0).querySelector("table");
+    var table = createtable("", "table-wrap", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmessage?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0, document.getElementById("main_data")).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
 }
@@ -49,7 +49,7 @@ function activitybyname_switch() {
     if (is_table) {
         deleteiffound("abn_checkboxes");
         $(".daterangepicker").remove();
-        var table_div = createtable("", "table-wrap", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0);
+        var table_div = createtable("", "table-wrap", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0, data_div);
         var table = table_div.querySelector("table");
         table.refresh();
         maketablessortable(table);
@@ -63,14 +63,22 @@ function usagebyword() {
     changemode();
     var data_div = document.getElementById("main_data");
     data_div.innerHTML = "";
-    var table_w_div = createtable("", "table-wrap", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1);
-    var table_e_div = createtable("", "table-wrap", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1);
-    var table_p_div = createtable("", "table-wrap", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1);
-    var table_u_div = createtable("", "table-wrap", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1);
+    var div_upper = document.createElement("div");
+    var div_lower = document.createElement("div");
+    div_upper.style.display = "inline-block";
+    div_lower.style.display = "inline-block";
+    var table_w_div = createtable("", "table-wrap", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper);
+    var table_e_div = createtable("", "table-wrap", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper);
+    var table_p_div = createtable("", "table-wrap", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1, div_lower);
+    var table_u_div = createtable("", "table-wrap", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower);
     var table_w = table_w_div.querySelector("table");
     var table_e = table_e_div.querySelector("table");
     var table_p = table_p_div.querySelector("table");
     var table_u = table_u_div.querySelector("table");
+    table_w_div.setAttribute("style", "display: inline-block; width: 49.75%; margin-right: 0.25%");
+    table_e_div.setAttribute("style", "display: inline-block; width: 49.75%; margin-left: 0.25%");
+    table_p_div.setAttribute("style", "display: inline-block; width: 49.75%; margin-right: 0.25%");
+    table_u_div.setAttribute("style", "display: inline-block; width: 49.75%; margin-left: 0.25%");
     table_w.refresh(table_w);
     table_e.refresh(table_e);
     table_p.refresh(table_p);
@@ -79,6 +87,8 @@ function usagebyword() {
     maketablessortable(table_p);
     maketablessortable(table_e);
     maketablessortable(table_u);
+    data_div.appendChild(div_upper);
+    data_div.appendChild(div_lower);
 }
 
 function append_select_to_url(param, select, value = false) {
@@ -93,6 +103,7 @@ function statsbyword() {
     changemode();
     var data_div = document.getElementById("main_data");
     var searchdiv = document.createElement("div");
+    var head_div = document.createElement("div");
     searchdiv.setAttribute("class", "buttonlike");
     searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Search for word:</span>";
     var search_input = document.createElement("input");
@@ -101,14 +112,16 @@ function statsbyword() {
     search_input.setAttribute("style", "text-align: left");
     searchdiv.appendChild(search_input);
     var totalusage_div = document.createElement("div");
-    totalusage_div.setAttribute("class", "buttonlike");
-    totalusage_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Total usage:</span>";
-    var totaluasge_output = document.createElement("span");
-    totaluasge_output.setAttribute("class", "btn");
-    totaluasge_output.setAttribute("style", "background-color: #ffffff; width: 80px");
+    totalusage_div.setAttribute("class","table-wrap buttonlike");
+    totalusage_div.setAttribute("style","width: 400px; display: block;")
+    var totaluasge_output = document.createElement("table");
+    totaluasge_output.setAttribute("class","table-all table table-striped table-fixed");
+    totaluasge_output.innerHTML = "<thead><tr><th></th><th>Word</th><th>Usage</th></tr></thead><tbody style=\"height:120px;\"></tbody>";
+    totaluasge_output.entries = [];
     totalusage_div.appendChild(totaluasge_output);
-    data_div.appendChild(searchdiv);
-    data_div.appendChild(totalusage_div);
+    head_div.appendChild(searchdiv);
+    head_div.appendChild(totalusage_div);
+    data_div.appendChild(head_div);
     bydt_div = createchart();
     bydt_div.setAttribute("class", "multichart");
     chart_bydt = bydt_div.chart;
@@ -155,41 +168,58 @@ function statsbyword() {
         if (document.getElementById("timefilter_check_n").checked) {
             byn_url += "&timefilter=" + $('#timefilter_n').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_n').data("daterangepicker").endDate.format("YYYY-MM-DD");
         }
-        word = search_input.value.toLocaleLowerCase();
-        makeapicall("ubw?mode=total&word=" + word, ((message) => { message = (message == "null" ? 0 : message); totaluasge_output.innerHTML = message }));
-        chart_bydt.refresh("ubw?mode=bydaytime&word=" + word + bydt_url);
-        chart_bywd.refresh("ubw?mode=byweekday&word=" + word + bywd_url);
-        chart_byt.refresh("ubw?mode=bytime&word=" + word + byt_url);
-        chart_byn.refresh("ubw?mode=byname&word=" + word + byn_url);
+        word = JSON.stringify(totaluasge_output.entries);
+        makeapicall("ubw?mode=total&words=" + word, ((message) => { updatetable(totaluasge_output.querySelector("tbody"), message, minimal=true, deletable=true) }));
+        chart_bydt.refresh("ubw?mode=bydaytime&words=" + word + bydt_url);
+        chart_bywd.refresh("ubw?mode=byweekday&words=" + word + bywd_url);
+        chart_byt.refresh("ubw?mode=bytime&words=" + word + byt_url);
+        chart_byn.refresh("ubw?mode=byname&words=" + word + byn_url);
     });
+
+    totaluasge_output.update_fun = update_fun;
 
     bydt_time_select = add_time_select(bydt_div, update_fun, "_dt", true);
     bywd_time_select = add_time_select(bywd_div, update_fun, "_wd", true);
     byt_time_select = add_time_select(byt_div, update_fun, "_t", true);
     byn_time_select = add_time_select(byn_div, update_fun, "_n", true);
 
+    search_input.addEventListener("change", (() => {newentry = String(encodeURI(search_input.value.toLowerCase())); totaluasge_output.entries.push(newentry); search_input.value = ""; }))
     data_div.querySelectorAll("select").forEach((select) => select.addEventListener("change", update_fun));
     data_div.querySelectorAll("input").forEach((select) => select.addEventListener("change", update_fun));
 }
 
-function updatetable(tbody, message) {
+function updatetable(tbody, message, minimal=false, deletable=false) {
     tbody.innerHTML = "";
     var content = JSON.parse(message);
     var table = tbody.parentNode;
-    table.length = content[0];
-    content = content[1];
-    table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)), table.length) + " of " + table.length;
+    if (!minimal) {
+        table.length = content[0];
+        content = content[1];
+        table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)), table.length) + " of " + table.length;
+    }
     if (content.length != 0) { tbody.parentNode.parentNode.style.visibility = "visible"; }
     for (i = 0; i < content.length; i++) {
         var row = tbody.insertRow(i);
+        var offset = 0;
+        if (deletable) {
+            btncell = row.insertCell(0);
+            delbtn = document.createElement("i");
+            delbtn.setAttribute("class","fas fa-times-circle");
+            delbtn.addEventListener("click", function (i) { return function () {
+                table.entries.splice(i, 1);
+                table.update_fun();
+            }}(i));
+            btncell.appendChild(delbtn);
+            offset = 1;
+        }
         for (j = 0; j < content[i].length; j++) {
-            row.insertCell(j).innerHTML = content[i][j];
+            if (minimal) { content[i][j] = content[i][j] == null ? 0 : content[i][j]}
+            row.insertCell(j + offset).innerHTML = content[i][j];
         }
     }
 }
 
-function createtable(attributes_table, attributes_div, header, url, sort_by) {
-    var data_div = document.getElementById("main_data");
+function createtable(attributes_table, attributes_div, header, url, sort_by, data_div) {
     var table = document.createElement("table");
     var head = document.createElement("thead");
     var body = document.createElement("tbody");
