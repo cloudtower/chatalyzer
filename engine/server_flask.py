@@ -670,7 +670,11 @@ def safediv(num, denom):
     if denom == 0:
         return 0
     else:
-        return round((num / denom), 2)
+        res = (num / denom)
+        if res < 1:
+            return round(res, -int(math.floor(math.log10(abs(res)))) + 1)
+        else:
+            return round(res, 2)
 
 
 def param_to_bool(param, default=False):
