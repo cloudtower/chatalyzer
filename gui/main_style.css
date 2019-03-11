@@ -12,6 +12,10 @@ body {
     display: block
 }
 
+td {
+    vertical-align: middle;
+}
+
 .table-wrap {
     background-color: #ffffff;
     margin-top: 10px;
@@ -41,7 +45,6 @@ body {
 
 .secondary_control {
     background-color: #ffffff;
-    margin: 5px;
 }
 
 #langmain {
@@ -57,9 +60,12 @@ body {
     display: inline-flex;
     border-radius: 4px;
     vertical-align: middle;
-    margin: 5px;
 }
 
 .multichart {
     margin-bottom: 50px;
+}
+
+.foldable {
+    margin: 5px;
 }
