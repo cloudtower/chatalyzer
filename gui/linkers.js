@@ -23,7 +23,7 @@ function pickfile_handle(message) {
 }
 
 function activitybyname() {
-    changemode();
+    changemode(document.getElementById("btn_abn"));
     var ctrl_div = document.getElementById("primary_controls");
     var radio_div = document.createElement("div");
     radio_div.setAttribute("class", "btn secondary_control");
@@ -36,7 +36,7 @@ function activitybyname() {
 }
 
 function activityraw() {
-    changemode();
+    changemode(document.getElementById("btn_ar"));
     var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0, document.getElementById("main_data")).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
@@ -60,7 +60,7 @@ function activitybyname_switch() {
 }
 
 function usagebyword() {
-    changemode();
+    changemode(document.getElementById("btn_ubw"));
     var data_div = document.getElementById("main_data");
     data_div.innerHTML = "";
     var div_upper = document.createElement("div");
@@ -100,7 +100,7 @@ function append_select_to_url(param, select, value = false) {
 }
 
 function statsbyword() {
-    changemode();
+    changemode(document.getElementById("btn_sbw"));
     var data_div = document.getElementById("main_data");
     var searchdiv = document.createElement("div");
     var head_div = document.createElement("div");
@@ -337,19 +337,19 @@ function maketablessortable(table, filterable = false) {
 }
 
 function activitybyweekday() {
-    changemode();
+    changemode(document.getElementById("btn_abw"));
     var chart = createchart().chart;
     add_act_controls(chart, "abw", true, "?placeholder=uninteresting", false, true, false);
 }
 
 function activitybydaytime() {
-    changemode();
+    changemode(document.getElementById("btn_abdt"));
     var chart = createchart().chart;
     add_act_controls(chart, "abdt", true, "?placeholder=uninteresting", false, false);
 }
 
 function activitybytime() {
-    changemode();
+    changemode(document.getElementById("btn_abt"));
     var chart = createchart().chart;
     add_act_controls(chart, "abt", true, "?placeholder=uninteresting", true);
     chart.options.scales.xAxes = [{ type: "time" }];
@@ -607,8 +607,10 @@ function createchart(type = 'bar') {
     return wrapper_div;
 }
 
-function changemode() {
+function changemode(button) {
     document.getElementById("main_data").innerHTML = "";
+    document.getElementById("primary_controls").querySelectorAll("button").forEach((button) => {button.setAttribute("style", "background-color: buttonface");})
+    button.setAttribute("style", "background-color: #ccccff");
     destroyallothers();
 }
 
