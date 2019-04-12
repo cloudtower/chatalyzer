@@ -70,7 +70,7 @@ function usagebyword() {
     var table_w_div = createtable("", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper);
     var table_e_div = createtable("", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper, make_emoji=0);
     var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1, div_lower);
-    var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower);
+    var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower, make_emoji=0);
     var table_w = table_w_div.querySelector("table");
     var table_e = table_e_div.querySelector("table");
     var table_p = table_p_div.querySelector("table");

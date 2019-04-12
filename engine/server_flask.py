@@ -322,9 +322,11 @@ def compute_activity():
     entries = []
     names = []
 
+    name_last = "unknown"
+
     for line in f:
         try:
-            entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
+            entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
             has_date = re.match(re_lang_filter_syntax, line) is not None
             has_name = re.match(re_lang_filter_log_syntax, line) is None
@@ -333,7 +335,7 @@ def compute_activity():
 
             if has_date:
                 time = line.split(" - ")[0]
-                hour_last = int(re.search(r"\, (\d{1, 2})", time).group(1))
+                hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
                 date_last = datetime.datetime.strptime(time, lang_datetime)
                 weekday_last = date_last.weekday()
                 day_last = date_last.date()
@@ -510,7 +512,7 @@ def compute_usage():
                     if re.search(re_lang_filter_syntax, line) is not None:
                         linesplit = line.split(" - ", 1)
                         time = linesplit[0]
-                        hour_last = int(re.search(r"\, (\d{1, 2})", time).group(1))
+                        hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
                         date_last = datetime.datetime.strptime(time, lang_datetime)
                         weekday_last = date_last.weekday()
                         day_last = date_last.date()
@@ -596,9 +598,7 @@ def loadfile(filename):
 
 @server.route("/api/setlang")
 def setlang():
-    lang = request.args.get("lang")
-    if lang == None:
-        lang = "en"
+    lang = param_to_string(request.args.get("lang"), "en")
     setdefaultlang(lang)
     return "Language successfully set."
 
@@ -606,16 +606,16 @@ def setlang():
 def setdefaultlang(lang="en"):
     global re_lang_filter_syntax, re_lang_filter_log_syntax, re_lang_filter_media, re_lang_special_chars, lang_datetime, db_datetime
     if lang == "en":
-        re_lang_filter_syntax = r"(\d{1, 2}\/){2}\d{2}, \d{2}:\d{2} - .*"
-        re_lang_filter_log_syntax = r"(\d{1, 2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
+        re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
+        re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Media omitted>"
-        re_lang_special_chars = r"[\.\, \/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
+        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
         lang_datetime = "%m/%d/%y, %H:%M"
     elif lang == "de":
         re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
         re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Medien ausgeschlossen>"
-        re_lang_special_chars = r"[\.\, \/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
+        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
         lang_datetime = "%d.%m.%y, %H:%M"
     db_datetime = "%Y-%m-%d"
 
