@@ -13,8 +13,10 @@ function pickfile() {
         }
     };
     dialog.showOpenDialog({ properties: ['openFile'] }, function (file) {
-        xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
-        xhttp.send();
+        if (file != undefined) {
+            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
+            xhttp.send();
+        }
     });
 }
 
