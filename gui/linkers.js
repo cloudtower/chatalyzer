@@ -37,7 +37,7 @@ function activitybyname() {
 
 function activityraw() {
     changemode(document.getElementById("btn_ar"));
-    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0, document.getElementById("main_data")).querySelector("table");
+    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0, document.getElementById("main_data"), []).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
 }
@@ -49,7 +49,7 @@ function activitybyname_switch() {
     if (is_table) {
         deleteiffound("abn_checkboxes");
         $(".daterangepicker").remove();
-        var table_div = createtable("", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0, data_div);
+        var table_div = createtable("", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0, data_div, ["20"]);
         var table = table_div.querySelector("table");
         table.refresh();
         maketablessortable(table);
@@ -67,10 +67,10 @@ function usagebyword() {
     var div_lower = document.createElement("div");
     div_upper.style.display = "inline-block";
     div_lower.style.display = "inline-block";
-    var table_w_div = createtable("", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper);
-    var table_e_div = createtable("", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper, make_emoji=0);
-    var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1, div_lower);
-    var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower, make_emoji=0);
+    var table_w_div = createtable("", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper, ["75"]);
+    var table_e_div = createtable("", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper, ["75"], make_emoji=0);
+    var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1, div_lower, ["75"]);
+    var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower, ["75"], make_emoji=0);
     var table_w = table_w_div.querySelector("table");
     var table_e = table_e_div.querySelector("table");
     var table_p = table_p_div.querySelector("table");
@@ -105,20 +105,22 @@ function statsbyword() {
     var searchdiv = document.createElement("div");
     var head_div = document.createElement("div");
     searchdiv.setAttribute("class", "buttonlike");
-    searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Search for word:</span>";
+    searchdiv.setAttribute("style","width: 400px")
+    searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px; width: 200px;\">Search for word:</span>";
     var search_input = document.createElement("input");
     search_input.setAttribute("type", "text");
     search_input.setAttribute("class", "form-input");
-    search_input.setAttribute("style", "text-align: left");
+    search_input.setAttribute("style", "text-align: left; width: 100%");
     searchdiv.appendChild(search_input);
     var totalusage_div = document.createElement("div");
     totalusage_div.setAttribute("class","table-wrap buttonlike");
-    totalusage_div.setAttribute("style","width: 400px; display: block;")
+    totalusage_div.setAttribute("style","width: 400px; display: block; margin-bottom: 15px")
     var totaluasge_output = document.createElement("table");
     totaluasge_output.setAttribute("class","table-all table table-striped table-fixed");
-    totaluasge_output.innerHTML = "<thead><tr><th></th><th>Word</th><th>Usage</th></tr></thead><tbody style=\"height:120px;\"></tbody>";
+    totaluasge_output.innerHTML = "<thead><tr><th style=\"width: 15%\"></th><th style=\"width: 60%\">Word</th><th style=\"width: 25%\">Usage</th></tr></thead><tbody style=\"height:120px;\"></tbody>";
     totaluasge_output.entries = [];
     totaluasge_output.make_emoji = 0;
+    totaluasge_output.row_widths = ["60"]
     totalusage_div.appendChild(totaluasge_output);
     head_div.appendChild(searchdiv);
     head_div.appendChild(totalusage_div);
@@ -206,7 +208,7 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
             btncell = row.insertCell(0);
             delbtn = document.createElement("i");
             delbtn.setAttribute("class","fas fa-times-circle");
-            btncell.setAttribute("style","vertical-align: middle;")
+            btncell.setAttribute("style","vertical-align: middle; width: 15%")
             delbtn.addEventListener("click", function (i) { return function () {
                 table.entries.splice(i, 1);
                 table.update_fun();
@@ -217,7 +219,8 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
         for (j = 0; j < content[i].length; j++) {
             if (minimal) { content[i][j] = content[i][j] == null ? 0 : content[i][j]}
             if (table.make_emoji >= 0 && j == table.make_emoji) {
-                row.insertCell(j + offset).innerHTML = emojione.toImage(String(content[i][j]));
+                new_cell = row.insertCell(j + offset);
+                new_cell.innerHTML = emojione.toImage(String(content[i][j]));
             } else {
                 new_cell = row.insertCell(j + offset);
                 new_cell.innerHTML = content[i][j];
@@ -225,11 +228,14 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
                     new_cell.setAttribute("style","vertical-align: middle;");
                 }
             }
+            if (j < table.row_widths.length) {
+                new_cell.style.width = table.row_widths[j] + "%";
+            }
         }
     }
 }
 
-function createtable(attributes_table, header, url, sort_by, data_div, make_emoji=-1) {
+function createtable(attributes_table, header, url, sort_by, data_div, row_widths, make_emoji=-1) {
     var table = document.createElement("table");
     var head = document.createElement("thead");
     var body = document.createElement("tbody");
@@ -297,6 +303,14 @@ function createtable(attributes_table, header, url, sort_by, data_div, make_emoj
     table.length = 0;
     table.filters = {};
     table.make_emoji = make_emoji;
+    table.row_widths = row_widths;
+    row_id = 0;
+    table.querySelectorAll("th").forEach(th => {
+        if (row_id < row_widths.length) {
+            th.style.width = row_widths[row_id] + "%";
+        }
+        row_id++;
+    })
     table.setAttribute("style", "margin-bottom: 10px")
     container.appendChild(table);
     container.appendChild(btndiv);
@@ -404,7 +418,7 @@ function add_select(parent_div, options, labels, label, id_additional = "", prep
 function add_time_select(parent_div, callback, id_additional = "", prepend = false) {
     var timefilterdiv = document.createElement("div");
     timefilterdiv.setAttribute("class", "btn secondary_control");
-    timefilterdiv.setAttribute("style", "width: 230px; height: 34px");
+    timefilterdiv.setAttribute("style", "width: 230px; height: 34px; margin-right: 4px");
     timefilterdiv.innerHTML = "<i style=\"font-size: 16px; padding-right: 10px\" class=\"fa\">&#xf073;</i><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 80%; border: none; padding: 0; vertical-align: top\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:6px\">"
     if (prepend) {
         parent_div.insertBefore(timefilterdiv, parent_div.firstChild);
