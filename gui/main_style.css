@@ -55,17 +55,19 @@ td {
     margin-right: 4px;
 }
 
+.btn {
+    margin-bottom: 4px;
+}
+
 .buttonlike {
     background-color: buttonface;
     display: inline-flex;
     border-radius: 4px;
+    margin-bottom: 4px;
+    margin-right: 4px;
     vertical-align: middle;
 }
 
 .multichart {
     margin-bottom: 50px;
-}
-
-.foldable {
-    margin: 5px;
 }

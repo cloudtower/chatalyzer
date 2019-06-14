@@ -13,7 +13,7 @@ function pickfile() {
         }
     };
     dialog.showOpenDialog({ properties: ['openFile'] }, function (file) {
-        xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURI(file)).replace(/\//g, "%2F"), true);
+        xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
         xhttp.send();
     });
 }
@@ -108,7 +108,7 @@ function statsbyword() {
     searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px;\">Search for word:</span>";
     var search_input = document.createElement("input");
     search_input.setAttribute("type", "text");
-    search_input.setAttribute("class", "btn form-input");
+    search_input.setAttribute("class", "form-input");
     search_input.setAttribute("style", "text-align: left");
     searchdiv.appendChild(search_input);
     var totalusage_div = document.createElement("div");
@@ -243,7 +243,7 @@ function createtable(attributes_table, header, url, sort_by, data_div, make_emoj
     numinput_label.setAttribute("style", "padding: 7px; padding-left: 12px");
     numinput_label.innerHTML = "Page number:";
     var numinput = document.createElement("input");
-    numinput.setAttribute("class", "btn");
+    numinput.setAttribute("class", "form-control");
     numinput.setAttribute("type", "text");
     numinput.setAttribute("style", "width: 50px; border-color: #444444");
     numinput.value = 1;
@@ -257,7 +257,7 @@ function createtable(attributes_table, header, url, sort_by, data_div, make_emoj
     sizeinput_label.setAttribute("style", "padding: 7px; padding-left: 12px");
     sizeinput_label.innerHTML = "Page size:";
     var sizeinput = document.createElement("input");
-    sizeinput.setAttribute("class", "btn");
+    sizeinput.setAttribute("class", "form-control");
     sizeinput.setAttribute("type", "text");
     sizeinput.setAttribute("style", "width: 100px; border-color: #444444");
     sizeinput.value = 50;
@@ -379,11 +379,11 @@ function add_name_filter(parent_div, id_additional = "", prepend = false) {
 
 function add_select(parent_div, options, labels, label, id_additional = "", prepend = false) {
     name_select_div = document.createElement("div");
-    name_select_div.setAttribute("class", "buttonlike foldable");
+    name_select_div.setAttribute("class", "buttonlike");
     name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\"> " + label + ": </span>";
     select = document.createElement("select");
     select.setAttribute("id", "name_sel" + id_additional);
-    select.setAttribute("class", "btn form-control");
+    select.setAttribute("class", "form-control");
     select.setAttribute("style", "width: 200px")
     select.innerHTML = "<option value=\"\"></option>";
     name_select_div.appendChild(select);
@@ -403,7 +403,7 @@ function add_select(parent_div, options, labels, label, id_additional = "", prep
 
 function add_time_select(parent_div, callback, id_additional = "", prepend = false) {
     var timefilterdiv = document.createElement("div");
-    timefilterdiv.setAttribute("class", "btn secondary_control foldable");
+    timefilterdiv.setAttribute("class", "btn secondary_control");
     timefilterdiv.setAttribute("style", "width: 230px; height: 34px");
     timefilterdiv.innerHTML = "<i style=\"font-size: 16px; padding-right: 10px\" class=\"fa\">&#xf073;</i><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 80%; border: none; padding: 0; vertical-align: top\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:6px\">"
     if (prepend) {
@@ -478,12 +478,12 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
 
     if (aggregation_input) {
         aggr_input_div = document.createElement("div");
-        aggr_input_div.setAttribute("class", "buttonlike foldable");
+        aggr_input_div.setAttribute("class", "buttonlike");
         aggr_input_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Aggregate by days:</span>";
         aggr_input = document.createElement("input");
         aggr_input.setAttribute("id", "aggr_input");
         aggr_input.setAttribute("type", "text");
-        aggr_input.setAttribute("class", "btn form-control");
+        aggr_input.setAttribute("class", "form-control");
         aggr_input.setAttribute("style", "width: 100px")
         aggr_input_div.appendChild(aggr_input);
         checkbox_div.appendChild(aggr_input_div);
