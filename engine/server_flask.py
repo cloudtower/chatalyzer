@@ -309,7 +309,6 @@ def activity_db_pad(labels, output, dontsort=False):
 
 def compute_activity():
     global act_cached, act_wait
-    f = open(fp)
     db_conn, db_cursor = getdbconnection()
 
     db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)" % (table_prefix + "-act"))
@@ -324,79 +323,80 @@ def compute_activity():
 
     name_last = "unknown"
 
-    for line in f:
-        try:
-            entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    with open(fp) as f:
+        for line in f:
+            try:
+                entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-            has_date = re.match(re_lang_filter_syntax, line) is not None
-            has_name = re.match(re_lang_filter_log_syntax, line) is None
-            is_media = re.search(re_lang_filter_media, line) is not None
-            is_message = has_date
+                has_date = re.match(re_lang_filter_syntax, line) is not None
+                has_name = re.match(re_lang_filter_log_syntax, line) is None
+                is_media = re.search(re_lang_filter_media, line) is not None
+                is_message = has_date
 
-            if has_date:
-                time = line.split(" - ")[0]
-                hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                date_last = datetime.datetime.strptime(time, lang_datetime)
-                weekday_last = date_last.weekday()
-                day_last = date_last.date()
+                if has_date:
+                    time = line.split(" - ")[0]
+                    hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
+                    date_last = datetime.datetime.strptime(time, lang_datetime)
+                    weekday_last = date_last.weekday()
+                    day_last = date_last.date()
 
-            if not has_name:
-                log_msgs.append((line, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
-            else:
-                if is_message:
-                    linesplit = line.split(" - ", 1)[1].split(': ', 1)
-                    name_last = linesplit[0]
-                    linerest = linesplit[1]
-
-                    if name_last not in names:
-                        names.append(name_last)
-
-                    if is_media:
-                        entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
+                if not has_name:
+                    log_msgs.append((line, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
                 else:
-                    linerest = line
+                    if is_message:
+                        linesplit = line.split(" - ", 1)[1].split(': ', 1)
+                        name_last = linesplit[0]
+                        linerest = linesplit[1]
 
-                if not is_media:
-                    linesplit = linerest.split(" ")
-                    inter_punct = []
-                    inter_emoji = []
-                    filtered = []
+                        if name_last not in names:
+                            names.append(name_last)
 
-                    for word in linesplit:
-                        for part in re.split(r"([^\wäöü]+)", word):
-                            inter_punct.append(part)
+                        if is_media:
+                            entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
+                    else:
+                        linerest = line
 
-                    for word in inter_punct:
-                        for part in re.split(r"("+re_lang_special_chars+r")", word):
-                            inter_emoji.append(part)
+                    if not is_media:
+                        linesplit = linerest.split(" ")
+                        inter_punct = []
+                        inter_emoji = []
+                        filtered = []
 
-                    for word in inter_emoji:
-                        if re.match(r"[\wäöü]+", word) is None and re.match(re_lang_special_chars, word) is None:
-                            for c in word:
-                                filtered.append(c)
-                        else:
-                            filtered.append(word)
+                        for word in linesplit:
+                            for part in re.split(r"([^\wäöü]+)", word):
+                                inter_punct.append(part)
 
-                    words = 0
-                    emojis = 0
-                    puncts = 0
+                        for word in inter_punct:
+                            for part in re.split(r"("+re_lang_special_chars+r")", word):
+                                inter_emoji.append(part)
 
-                    for word in filtered:
-                        if word != "\n" and word != "":
-                            if re.match(r'\w+', word, re.UNICODE):
-                                words += 1
-                            elif re.match(re_lang_special_chars, word):
-                                puncts += 1
-                            elif len(word) == 1 and isemoji(word):
-                                emojis += 1
+                        for word in inter_emoji:
+                            if re.match(r"[\wäöü]+", word) is None and re.match(re_lang_special_chars, word) is None:
+                                for c in word:
+                                    filtered.append(c)
                             else:
-                                words += 1
+                                filtered.append(word)
 
-                    entry = (name_last, day_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
+                        words = 0
+                        emojis = 0
+                        puncts = 0
 
-                entries.append(entry)
-        except Exception as e:
-            print("[!] Caught exception during activity computation: " + str(e))
+                        for word in filtered:
+                            if word != "\n" and word != "":
+                                if re.match(r'\w+', word, re.UNICODE):
+                                    words += 1
+                                elif re.match(re_lang_special_chars, word):
+                                    puncts += 1
+                                elif len(word) == 1 and isemoji(word):
+                                    emojis += 1
+                                else:
+                                    words += 1
+
+                        entry = (name_last, day_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
+
+                    entries.append(entry)
+            except Exception as e:
+                print("[!] Caught exception during activity computation: " + str(e))
 
     for element in log_msgs:
         for name in names:
@@ -502,62 +502,85 @@ def compute_usage():
 
     entries = []
 
-    f = open(fp)
-    for line in f:
-        try:
-            if re.search(re_lang_filter_media, line) is None:
-                if re.match(re_lang_filter_log_syntax, line) is None:
-                    entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, "")
+    with open(fp) as f:
+        for line in f:
+            try:
+                if re.search(re_lang_filter_media, line) is None:
+                    if re.match(re_lang_filter_log_syntax, line) is None:
+                        entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, "")
 
-                    if re.search(re_lang_filter_syntax, line) is not None:
-                        linesplit = line.split(" - ", 1)
-                        time = linesplit[0]
-                        hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                        date_last = datetime.datetime.strptime(time, lang_datetime)
-                        weekday_last = date_last.weekday()
-                        day_last = date_last.date()
-                        linesplit = linesplit[1].split(': ', 1)
-                        name_last = linesplit[0]
-                        linerest = linesplit[1]
-                    else:
-                        linerest = line
-
-                    linesplit = linerest.split(" ")
-                    inter_punct = []
-                    inter_emoji = []
-                    filtered = []
-
-                    for word in linesplit:
-                        for part in re.split(r"([^\wäöü]+)", word):
-                            inter_punct.append(part)
-
-                    for word in inter_punct:
-                        for part in re.split(r"("+re_lang_special_chars+r")", word):
-                            inter_emoji.append(part)
-
-                    for word in inter_emoji:
-                        if re.match(r"[\wäöü]+", word) is None and re.match(re_lang_special_chars, word) is None:
-                            for c in word:
-                                filtered.append(c)
+                        if re.search(re_lang_filter_syntax, line) is not None:
+                            linesplit = line.split(" - ", 1)
+                            time = linesplit[0]
+                            hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
+                            date_last = datetime.datetime.strptime(time, lang_datetime)
+                            weekday_last = date_last.weekday()
+                            day_last = date_last.date()
+                            linesplit = linesplit[1].split(': ', 1)
+                            name_last = linesplit[0]
+                            linerest = linesplit[1]
                         else:
-                            filtered.append(word)
+                            linerest = line
 
-                    for word in filtered:
-                        if word != "\n" and word != "":
-                            word = word.lower()
-                            if re.match(r'\w+', word, re.UNICODE):
-                                entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, word)
-                            elif re.match(re_lang_special_chars, word):
-                                entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, word)
-                            elif len(word) == 1 and isemoji(word):
-                                entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, word)
+                        linesplit = linerest.split(" ")
+                        inter_punct = []
+                        inter_emoji = []
+                        filtered = []
+
+                        # handle hyperlinks
+                        for word in linesplit:
+                            if re.search(r"https?://", word) is not None:
+                                filtered.append(word)
                             else:
-                                entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, word)
+                                for part in re.split(r"([^\wäöü]+)", word):
+                                    inter_punct.append(part)
 
-                            entries.append(entry)
+                        for word in inter_punct:
+                            for part in re.split(r"("+re_lang_special_chars+r")", word):
+                                inter_emoji.append(part)
 
-        except Exception as e:
-            print("[!] Caught exception scanning ubw: " + str(e))
+                        for i, word in enumerate(inter_emoji):
+                            # handle keycap emoji sequences
+                            if i < len(inter_emoji) - 1 and len(inter_emoji[i + 1]) > 0 and ord(inter_emoji[i + 1][0]) == 0x20e3:
+                                if len(word) > 1:
+                                    filtered.append(word[:-1])
+                                filtered.append(word[-1] + inter_emoji[i + 1][0])
+                                inter_emoji[i + 1] = inter_emoji[i + 1][1:]
+                            else:
+                                if re.match(r"[\wäöü]+$", word) is None and re.match(re_lang_special_chars + r"$", word) is None:
+                                    j = 0
+                                    while j < len(word):
+                                        toappend = word[j]
+                                        # handle multiple emojis joined by zero-width space
+                                        if j < len(word) - 1 and word[j + 1] == 0x200d:
+                                            while j < len(word) - 2 and word[j + 1] == 0x200d:
+                                                toappend += word[j + 1:j + 3]
+                                                j += 2
+                                        # handle emojis with skin color modifier and regional identifiers
+                                        elif j < len(word) - 1 and (isfitzpatrickemoji(word[j + 1]) or isregionalindicator(word[j + 1])):
+                                            toappend += word[j + 1]
+                                            j += 1
+                                        filtered.append(toappend)
+                                        j += 1
+                                else:
+                                    filtered.append(word)
+
+                        for word in filtered:
+                            if word != "\n" and word != "":
+                                word = word.lower()
+                                if re.match(r'\w+$', word, re.UNICODE):
+                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, word)
+                                elif re.match(re_lang_special_chars, word):
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, word)
+                                elif len(word) <= 2 and isemoji(word):
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, word)
+                                else:
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, word)
+
+                                entries.append(entry)
+
+            except IOError as e:
+                print("[!] Caught exception scanning ubw: " + str(e))
 
     print("[-] Almost done, committing")
     db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)" % (table_prefix + "-ubw"), entries)
@@ -581,19 +604,16 @@ def get_loadfile():
 def loadfile(filename):
     global fp, table_prefix
 
-    try:
-        filename = HTMLParser().unescape(filename)
-        print("[i] " + filename)
-        table_prefix = re.split(r"[\/\\]", filename)[-1].split(".")[0]
-        table_prefix = re.sub(r"\W", "_", table_prefix)
-        print("[i] New table prefix: " + table_prefix)
-        f = open(filename)
-        f.close()
-        fp = filename
-        resetcachedbits()
-        return "Successfully loaded file."
-    except IOError:
+    print("[i] " + filename)
+    table_prefix = re.split(r"[\/\\]", filename)[-1].split(".")[0]
+    table_prefix = re.sub(r"\W", "_", table_prefix)
+    print("[i] New table prefix: " + table_prefix)
+    if not os.path.isfile(filename):
+        print("[!] File {} not found!".format(filename))
         return "File not found."
+    fp = filename
+    resetcachedbits()
+    return "Successfully loaded file."
 
 
 @server.route("/api/setlang")
@@ -609,13 +629,13 @@ def setdefaultlang(lang="en"):
         re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
         re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Media omitted>"
-        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
+        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
         lang_datetime = "%m/%d/%y, %H:%M"
     elif lang == "de":
         re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
         re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Medien ausgeschlossen>"
-        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°]"
+        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
         lang_datetime = "%d.%m.%y, %H:%M"
     db_datetime = "%Y-%m-%d"
 
@@ -650,9 +670,34 @@ def loadstopwords(lang="en"):
 
 
 def isemoji(ch):
-    i = ord(ch)
-    return (i >= 0x1f300 and i < 0x1f64f) or (i >= 0x1f681 and i < 0x1f6c5) or (i >= 0x1f30d and i < 0x1f567) or (i >= 0x2600 and i < 0x27C0) or (i >= 0x1f900 and i < 0x1fa00)
+    if len(ch) > 1:
+        return all([isemoji(c) for c in ch])
 
+    i = ord(ch)
+    return (i in range(0x1f600, 0x1f650) # Emojis
+        or i in range(0x1f680, 0x1f700) # Transport and Map Symbols
+        or i in range(0x1f300, 0x1f600) # Miscellaneous Symbols and Pictographs
+        or i in range(0x2000, 0x2070) # General Punctuation
+        or i == 0x20e3 # Combining Enclosing Keycap
+        or i in range(0x30, 0x40) # Numbers (for enclosed combinations)
+        or i in range(0x2190, 0x2200) # Arrows
+        or i in range(0x2300, 0x2400) # Miscellaneous Technical
+        or i in range(0x25a0, 0x2600) # Geometric Shapes
+        or i in range(0x2600, 0x2700) # Miscellaneous Symbols
+        or i in range(0x2700, 0x27C0) # Dingbats
+        or i in range(0x2b00, 0x2c00) # Miscellaneous Symbols and Arrows
+        or i in range(0x3200, 0x3300) # Enclosed CJK Letters and Months
+        or i in range(0x1f900, 0x1fa00) # Supplemental Symbols and Pictographs
+        or i in range(0x1f100,0x1f200) # Enclosed Alphanumeric Supplement
+        or i in range(0x1f200, 0x1f300)) # Enclosed Ideographic Supplement
+
+def isfitzpatrickemoji(ch):
+    i = ord(ch)
+    return (i in range(0x1f3fb, 0x1f400))
+
+def isregionalindicator(ch):
+    i = ord(ch)
+    return (i in range(0x1f1e6, 0x1f200))
 
 def getdbconnection():
     db_conn = sqlite3.connect("chats.db")
