@@ -53,7 +53,7 @@ function activitybyname() {
 
 function activityraw() {
     changemode(document.getElementById("btn_ar"));
-    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw?placeholder=uninteresting", 0, document.getElementById("main_data"), []).querySelector("table");
+    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw", 0, document.getElementById("main_data"), []).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
 }
@@ -65,7 +65,7 @@ function activitybyname_switch() {
     if (is_table) {
         deleteiffound("abn_checkboxes");
         $(".daterangepicker").remove();
-        var table_div = createtable("", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn?placeholder=uninteresting", 0, data_div, ["20"]);
+        var table_div = createtable("", "<tr><th>Name</th><th>Posts</th><th>Media</th><th>Logs</th><th>Words</th><th>Chars</th><th>Emojis</th><th>Puncts</th></tr>", "abn", 0, data_div, ["20"]);
         var table = table_div.querySelector("table");
         table.refresh();
         maketablessortable(table);
@@ -369,19 +369,19 @@ function maketablessortable(table, filterable = false) {
 function activitybyweekday() {
     changemode(document.getElementById("btn_abw"));
     var chart = createchart().chart;
-    add_act_controls(chart, "abw", true, "?placeholder=uninteresting", false, true, false);
+    add_act_controls(chart, "abw", true, "", false, true, false);
 }
 
 function activitybydaytime() {
     changemode(document.getElementById("btn_abdt"));
     var chart = createchart().chart;
-    add_act_controls(chart, "abdt", true, "?placeholder=uninteresting", false, false);
+    add_act_controls(chart, "abdt", true, "", false, false);
 }
 
 function activitybytime() {
     changemode(document.getElementById("btn_abt"));
     var chart = createchart().chart;
-    add_act_controls(chart, "abt", true, "?placeholder=uninteresting", true);
+    add_act_controls(chart, "abt", true, "", true);
     chart.options.scales.xAxes = [{ type: "time" }];
 }
 
@@ -460,7 +460,7 @@ function add_time_select(parent_div, callback, id_additional = "", prepend = fal
     }, callback);
 }
 
-function add_act_controls(chart, spec_string, filter_names = true, url_additional = "?placeholder=uninteresting", aggregation_input = false, filter_daytime = true, filter_weekday = true) {
+function add_act_controls(chart, spec_string, filter_names = true, url_additional = "", aggregation_input = false, filter_daytime = true, filter_weekday = true) {
     var ctrl_div = document.getElementById("controls");
     var checkbox_div = document.createElement("div");
     checkbox_div.setAttribute("style", "margin: 5px")
@@ -676,6 +676,7 @@ function makeapicall(url, callback) {
             callback(this.responseText);
         }
     };
+    url = url.replace("?","&").replace("&","?");
     xhttp.open("GET", api_url + url, true);
     xhttp.send();
 }
