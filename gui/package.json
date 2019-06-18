@@ -2,7 +2,7 @@
   "name": "wagui",
   "version": "1.0.0",
   "description": "A WhatsApp Analyzer GUI",
-  "main": "main.js",
+  "main": "startup.js",
   "scripts": {
     "start": "electron ."
   },
