@@ -236,6 +236,10 @@ def db_request(sql, group_by, params, setand=False):
         act_wait = True
         compute_activity()
 
+    def sql_and(setand, sql):
+        sql += " AND" if setand else " WHERE"
+        return True, sql
+
     db_conn, db_cursor = getdbconnection()
 
     person_filter = request.args.get("namefilter")
@@ -243,11 +247,7 @@ def db_request(sql, group_by, params, setand=False):
         person_filter = HTMLParser().unescape(person_filter)
 
     if person_filter is not None and person_filter is not "":
-        if setand:
-            sql += " AND"
-        else:
-            sql += " WHERE"
-            setand = True
+        setand, sql = sql_and(setand, sql)
         sql += " name=?"
         params += [person_filter]
 
@@ -257,32 +257,20 @@ def db_request(sql, group_by, params, setand=False):
         try:
             date_start = datetime.datetime.strptime(split[0], "%Y-%m-%d")
             date_end = datetime.datetime.strptime(split[1], "%Y-%m-%d")
-            if setand:
-                sql += " AND"
-            else:
-                sql += " WHERE"
-                setand = True
+            setand, sql = sql_and(setand, sql)
             sql += " date BETWEEN '%s' AND '%s'" % (date_start, date_end)
         except:
             print("[!] Not a valid date!")
 
     weekday_filter = request.args.get("weekdayfilter")
     if weekday_filter is not None:
-        if setand:
-            sql += " AND"
-        else:
-            sql += " WHERE"
-            setand = True
+        setand, sql = sql_and(setand, sql)
         sql += " weekday=?"
         params += [weekday_filter]
 
     daytime_filter = request.args.get("daytimefilter")
     if daytime_filter is not None:
-        if setand:
-            sql += " AND"
-        else:
-            sql += " WHERE"
-            setand = True
+        setand, sql = sql_and(setand, sql)
         sql += " hour=?"
         params += [daytime_filter]
 
