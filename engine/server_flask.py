@@ -592,6 +592,67 @@ def compute_usage():
     ubc_wait = False
 
 
+@server.route("/api/getoptions")
+def get_settings():
+    key = param_to_string(request.args.get("key"), None)
+
+    if key is None:
+        return json.dumps(settings_global)
+    else:
+        try:
+            return json.dumps(settings_global[key])
+        except KeyError:
+            return json.dumps(settings_global)
+
+
+@server.route("/api/setoption")
+def set_setting():
+    global settings_global
+
+    key = param_to_string(request.args.get("key"))
+    value = param_to_string(request.args.get("value"))
+
+    try:
+        settings_global[key]["selected"] = value
+    except KeyError:
+        return "Error: no such option"
+
+    try:
+        with open(default_settings_file, "w") as f:
+            f.write(json.dumps(settings_global))
+        return "Success"
+    except IOError as e:
+        print("[!] Error writing config file!")
+        print(e)
+        return "Error: IOError"
+
+
+def parse_config_file():
+    global settings_global
+
+    try:
+        with open(default_settings_file) as f:
+            settings_json = f.read()
+    except IOError:
+        print("[!] Error: Config file not found!")
+        settings_json = ""
+
+    try:
+        settings_global = json.loads(settings_json)
+    except json.decoder.JSONDecodeError as e:
+        print("[!] Encountered error while parsing settings:")
+        print(e)
+        settings_global = default_settings
+
+    for key, value in settings_global.items():
+        parse_config(key, int(value["selected"]))
+
+def parse_config(key, index):
+    if key == "default_lang":
+        try:
+            setdefaultlang(settings_global["default_lang"]["options"][index])
+        except IndexError:
+            setdefaultlang()
 
 @server.route("/api/loadfile")
 def get_loadfile():
@@ -616,6 +677,10 @@ def loadfile(filename):
     return "Successfully loaded file."
 
 
+@server.route("/api/getlang")
+def getlang():
+    return lang_global
+
 @server.route("/api/setlang")
 def setlang():
     lang = param_to_string(request.args.get("lang"), "en")
@@ -624,19 +689,21 @@ def setlang():
 
 
 def setdefaultlang(lang="en"):
-    global re_lang_filter_syntax, re_lang_filter_log_syntax, re_lang_filter_media, re_lang_special_chars, lang_datetime, db_datetime
+    global re_lang_filter_syntax, re_lang_filter_log_syntax, re_lang_filter_media, re_lang_special_chars, lang_datetime, db_datetime, lang_global
     if lang == "en":
         re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
         re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Media omitted>"
         re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
         lang_datetime = "%m/%d/%y, %H:%M"
+        lang_global = "en"
     elif lang == "de":
         re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
         re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
         re_lang_filter_media = r"<Medien ausgeschlossen>"
         re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
         lang_datetime = "%d.%m.%y, %H:%M"
+        lang_global = "de"
     db_datetime = "%Y-%m-%d"
 
 def resetcachedbits():
@@ -747,8 +814,20 @@ act_return_order = ["identifier", "smessages", "smedia", "slogmsg", "swords", "s
 sql_asc_bool = {True: "ASC", False: "DESC"}
 loadfile("/home/lion/Entwuerfe/Verschiedenes/res/WA_KK_3_fix.txt")
 resetcachedbits()
-setdefaultlang()
-loadstopwords(lang="de")
+default_settings_file = "../settings.conf"
+default_settings = {
+    "default_lang": {
+        "desc": "Default Language",
+        "options": ["en", "de"],
+        "selected": "0"
+    },
+    "color_scheme": {
+        "desc": "Color Scheme",
+        "options": ["dark"],
+        "selected": "0"
+    }
+}
+parse_config_file()
 
 if __name__ == "__main__":
     server.run()

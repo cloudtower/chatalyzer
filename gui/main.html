@@ -18,6 +18,7 @@
         var dialog = require('electron').remote.dialog;
         var api_url = "http://127.0.0.1:5000/api/";
         getloadedfile();
+        getlangoptions();
     </script>
     <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
     <link rel="stylesheet" href="node_modules/daterangepicker/daterangepicker.css">
@@ -29,6 +30,7 @@
 <body>
     <div id="controls">
         <div style="margin: 5px" id="primary_controls">
+            <button id="btn_options" class="btn" onclick="window.location='options.html'"><i class="fas fa-cogs" style="font-size: 20px"></i></button>
             <button id="btn_abn" class="btn" onclick="activitybyname()">Activity by Name</button>
             <button id="btn_abw" class="btn" onclick="activitybyweekday()">Activity by Weekday</button>
             <button id="btn_abdt" class="btn" onclick="activitybydaytime()">Activity by Daytime</button>
@@ -39,8 +41,6 @@
             <div class="buttonlike">
                 <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
                 <select class="form-control" id="langmain" onchange="switchlang()">
-                    <option>en</option>
-                    <option>de</option>
                 </select>
             </div>
             <button class="btn" onclick="pickfile()">Pick File</button>

@@ -4,6 +4,21 @@ function getloadedfile() {
     })
 }
 
+function getlangoptions() {
+    makeapicall("getoptions?key=default_lang", function (message) {
+        data = JSON.parse(message);
+        options = data["options"];
+        lang_select = document.getElementById("langmain");
+        for (i = 0; i < options.length; i++) {
+            option = document.createElement("option")
+            option.innerHTML = options[i];
+            lang_select.appendChild(option);
+        }
+        console.log(data["selected"])
+        lang_select.selectedIndex = Math.min(data["selected"], options.length);
+    })
+}
+
 function pickfile() {
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function () {
@@ -393,15 +408,17 @@ function add_name_filter(parent_div, id_additional = "", prepend = false) {
     return select;
 }
 
-function add_select(parent_div, options, labels, label, id_additional = "", prepend = false) {
+function add_select(parent_div, options, labels, label, id_additional = "", prepend = false, empty_option = true) {
     name_select_div = document.createElement("div");
     name_select_div.setAttribute("class", "buttonlike");
-    name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\"> " + label + ": </span>";
+    name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\"> " + label + " </span>";
     select = document.createElement("select");
     select.setAttribute("id", "name_sel" + id_additional);
     select.setAttribute("class", "form-control");
-    select.setAttribute("style", "width: 200px")
-    select.innerHTML = "<option value=\"\"></option>";
+    select.setAttribute("style", "width: 200px");
+    if (empty_option) {
+        select.innerHTML = "<option value=\"\"></option>";
+    }
     name_select_div.appendChild(select);
     if (prepend) {
         parent_div.insertBefore(name_select_div, parent_div.firstChild);

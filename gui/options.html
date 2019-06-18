@@ -1,0 +1,28 @@
+<html>
+    <head>
+        <script src="linkers.js"></script>
+        <script src="options.js"></script>
+        <script>
+            var api_url = "http://127.0.0.1:5000/api/";
+            get_all_options();
+        </script>
+        <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+        <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
+        <link rel="stylesheet" href="main_style.css">
+        <link rel="stylesheet" href="options_style.css">
+    </head>
+    <body>
+        <div id="options_wrapper">
+            <div style="width: 50%;" class="table-container">
+                <div style="display: inline">
+                    <h2 style="color: #bbbbbb; padding-left: 5px">
+                        <button id="btn_options" class="btn" onclick="window.location='main.html'"><i class="fas fa-angle-left" style="font-size: 18px; color: #000000"></i></button>
+                         Options
+                    </h2>
+                </div>
+                <table id="table_options" class="table table-all">
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
