@@ -14,6 +14,7 @@ body {
 
 td {
     vertical-align: middle;
+    word-break: break-all;
 }
 
 .table-wrap {
@@ -39,7 +40,7 @@ td {
 
 .table-fixed tbody {
     display: block;
-    height: 200px;
+    height: 250px;
     overflow: auto;
 }
 

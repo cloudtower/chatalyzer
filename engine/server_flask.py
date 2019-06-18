@@ -430,6 +430,9 @@ def get_usage_by_character():
     elif chartype == "puncts":
         db_output = list(db_cursor.execute("SELECT word, SUM(ispunct) as usage FROM '%s' WHERE ispunct=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
         db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE ispunct=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
+    elif chartype == "link":
+        db_output = list(db_cursor.execute("SELECT word, SUM(islink) as usage FROM '%s' WHERE islink=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
+        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE islink=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
     elif chartype == "uncat":
         db_output = list(db_cursor.execute("SELECT word, SUM(isuncat) as usage FROM '%s' WHERE isuncat=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
         db_output = [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
@@ -481,7 +484,7 @@ def compute_usage():
     global ubc_cached, ubc_wait
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, isuncat integer, word text)" % (table_prefix + "-ubw"))
+    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)" % (table_prefix + "-ubw"))
 
     weekday_last = 0
     hour_last = 0
@@ -495,7 +498,7 @@ def compute_usage():
             try:
                 if re.search(re_lang_filter_media, line) is None:
                     if re.match(re_lang_filter_log_syntax, line) is None:
-                        entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, "")
+                        entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, "")
 
                         if re.search(re_lang_filter_syntax, line) is not None:
                             linesplit = line.split(" - ", 1)
@@ -514,11 +517,15 @@ def compute_usage():
                         inter_punct = []
                         inter_emoji = []
                         filtered = []
+                        hyperlinks = []
 
                         # handle hyperlinks
                         for word in linesplit:
-                            if re.search(r"https?://", word) is not None:
-                                filtered.append(word)
+                            hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
+                            if hyperlink is not None:
+                                hyperlinks.append(hyperlink.group(0))
+                                inter_punct.append(word[:hyperlink.span(0)[0]])
+                                inter_punct.append(word[hyperlink.span(0)[1]:])
                             else:
                                 for part in re.split(r"([^\wäöü]+)", word):
                                     inter_punct.append(part)
@@ -557,21 +564,24 @@ def compute_usage():
                             if word != "\n" and word != "":
                                 word = word.lower()
                                 if re.match(r'\w+$', word, re.UNICODE):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, word)
+                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word)
                                 elif re.match(re_lang_special_chars, word):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, word)
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
                                 elif len(word) <= 2 and isemoji(word):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, word)
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
                                 else:
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, word)
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 0, 1, word)
 
                                 entries.append(entry)
 
-            except IOError as e:
+                        for word in hyperlinks:
+                            entries.append((name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, 0, word))
+
+            except Exception as e:
                 print("[!] Caught exception scanning ubw: " + str(e))
 
     print("[-] Almost done, committing")
-    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)" % (table_prefix + "-ubw"), entries)
+    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (table_prefix + "-ubw"), entries)
     db_conn.commit()
     db_conn.close()
     print("[-] Done")
