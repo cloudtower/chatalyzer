@@ -781,7 +781,10 @@ def safediv(num, denom):
     else:
         res = (num / denom)
         if res < 1:
-            return round(res, -int(math.floor(math.log10(abs(res)))) + 1)
+            if not res == 0:
+                return round(res, -int(math.floor(math.log10(abs(res)))) + 1)
+            else:
+                return 0
         else:
             return round(res, 2)
 
