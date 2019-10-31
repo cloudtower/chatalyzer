@@ -227,7 +227,7 @@ def activity_db_request(group_by):
     sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, table_prefix + '-act')
     return db_request(sql, group_by, [])
 
-def db_request(sql, group_by, params, setand=False):
+def db_request(sql, group_by, params, setand=False, sql_postfix=""):
     global act_wait
 
     while act_wait:
@@ -277,7 +277,7 @@ def db_request(sql, group_by, params, setand=False):
 
     sql += " GROUP BY %s" % group_by
 
-    db_output = list(db_cursor.execute(sql, params))
+    db_output = list(db_cursor.execute(sql + sql_postfix, params))
 
     db_conn.close()
 
@@ -403,10 +403,25 @@ def compute_activity():
 
 
 
+def ubc_db_request():
+    pagesize = param_to_int(request.args.get("pagesize"), 50)
+    pagenumber = param_to_int(request.args.get("pagenumber"))
+    sort = param_to_int(request.args.get("sortby"))
+    stop = param_to_bool(request.args.get("stop"))
+    asc = param_to_bool(request.args.get("asc"))
+    chartype = request.args.get("type")
+    return_order = ["word", "usage"]
+
+    db_output = db_request("SELECT word, SUM(is%s) as usage FROM '%s' WHERE is%s=1" % (chartype, table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY %s %s LIMIT %s OFFSET %s" % (return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize)))
+    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE is%s=1" % (table_prefix + '-ubw', chartype), "word", [], True, ")")
+    if chartype == "uncat":
+        return output_len, [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
+    else:
+        return output_len, db_output
+
 @server.route("/api/ubc")
 def get_usage_by_character():
     global ubc_wait
-    db_conn, db_cursor = getdbconnection()
 
     while ubc_wait:
         sleep(0.1)
@@ -416,33 +431,7 @@ def get_usage_by_character():
         print("[+] No Cache for ubc. Computing...")
         compute_usage()
 
-    pagesize = param_to_int(request.args.get("pagesize"), 50)
-    pagenumber = param_to_int(request.args.get("pagenumber"))
-    sort = param_to_int(request.args.get("sortby"))
-    stop = param_to_bool(request.args.get("stop"))
-    asc = param_to_bool(request.args.get("asc"))
-    chartype = request.args.get("type")
-
-    return_order = ["word", "usage"]
-
-    if chartype == "emoji":
-        db_output = list(db_cursor.execute("SELECT word, SUM(isemoji) as usage FROM '%s' WHERE isemoji=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
-        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isemoji=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
-    elif chartype == "puncts":
-        db_output = list(db_cursor.execute("SELECT word, SUM(ispunct) as usage FROM '%s' WHERE ispunct=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
-        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE ispunct=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
-    elif chartype == "link":
-        db_output = list(db_cursor.execute("SELECT word, SUM(islink) as usage FROM '%s' WHERE islink=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
-        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE islink=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
-    elif chartype == "uncat":
-        db_output = list(db_cursor.execute("SELECT word, SUM(isuncat) as usage FROM '%s' WHERE isuncat=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
-        db_output = [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
-        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isuncat=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
-    else:
-        db_output = list(db_cursor.execute("SELECT word, SUM(isword) as usage FROM '%s' WHERE isword=1 GROUP BY word ORDER BY %s %s LIMIT %s OFFSET %s" % ((table_prefix + '-ubw'), return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))))
-        db_output = (list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE isword=1 GROUP BY word)" % (table_prefix + '-ubw')))[0], db_output)
-
-    db_conn.close()
+    db_output = ubc_db_request()
 
     return json.dumps(db_output)
 

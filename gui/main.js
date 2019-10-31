@@ -70,8 +70,8 @@ function activitybyname_switch() {
         table.refresh();
         maketablessortable(table);
     } else {
-        var chart = createchart().chart;
-        add_act_controls(chart, "abn", false, "?mode=chart");
+        var chart = createchart("abn").chart;
+        add_filters([chart], chart.url, "?mode=chart", true, false, true, true, false);
     }
 }
 
@@ -85,7 +85,7 @@ function usagebyword() {
     div_lower.style.display = "inline-block";
     var table_w_div = createtable("", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper, ["75"]);
     var table_e_div = createtable("", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper, ["75"], make_emoji=0);
-    var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=puncts", 1, div_upper, ["75"]);
+    var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=punct", 1, div_upper, ["75"]);
     var table_l_div = createtable("", "<tr><th>Links</th><th>Usage</th></tr>", "ubc?type=link", 1, div_lower, ["90"], make_emoji=0);
     var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower, ["75"], make_emoji=0);
     var table_w = table_w_div.querySelector("table");
@@ -98,11 +98,11 @@ function usagebyword() {
     table_p_div.parentNode.setAttribute("style", "display: inline-block; width: 33%; margin-left: 0.25%");
     table_l_div.parentNode.setAttribute("style", "display: inline-block; width: 49.75%; margin-right: 0.25%");
     table_u_div.parentNode.setAttribute("style", "display: inline-block; width: 49.75%; margin-left: 0.25%;");
-    table_w.refresh(table_w);
-    table_e.refresh(table_e);
-    table_p.refresh(table_p);
-    table_l.refresh(table_l);
-    table_u.refresh(table_u);
+    table_w.refresh();
+    table_e.refresh();
+    table_p.refresh();
+    table_l.refresh();
+    table_u.refresh();
     maketablessortable(table_w);
     maketablessortable(table_p);
     maketablessortable(table_e);
@@ -110,6 +110,7 @@ function usagebyword() {
     maketablessortable(table_u);
     data_div.appendChild(div_upper);
     data_div.appendChild(div_lower);
+    add_filters([table_e, table_l, table_p, table_u, table_w], "ubw", "", false, true, true, true, false);
 }
 
 function append_select_to_url(param, select, value = false) {
@@ -146,17 +147,17 @@ function statsbyword() {
     head_div.appendChild(searchdiv);
     head_div.appendChild(totalusage_div);
     data_div.appendChild(head_div);
-    bydt_div = createchart();
+    bydt_div = createchart("ubw");
     bydt_div.setAttribute("class", "multichart");
     chart_bydt = bydt_div.chart;
-    bywd_div = createchart();
+    bywd_div = createchart("ubw");
     bywd_div.setAttribute("class", "multichart");
     chart_bywd = bywd_div.chart;
-    byt_div = createchart();
+    byt_div = createchart("ubw");
     byt_div.setAttribute("class", "multichart");
     chart_byt = byt_div.chart;
     chart_byt.options.scales.xAxes = [{ type: "time" }];
-    byn_div = createchart();
+    byn_div = createchart("ubw");
     //byn_div.setAttribute("class","multichart");
     chart_byn = byn_div.chart;
 
@@ -194,10 +195,14 @@ function statsbyword() {
         }
         word = JSON.stringify(totaluasge_output.entries);
         makeapicall("ubw?mode=total&words=" + word, ((message) => { updatetable(totaluasge_output.querySelector("tbody"), message, minimal=true, deletable=true) }));
-        chart_bydt.refresh("ubw?mode=bydaytime&words=" + word + bydt_url);
-        chart_bywd.refresh("ubw?mode=byweekday&words=" + word + bywd_url);
-        chart_byt.refresh("ubw?mode=bytime&words=" + word + byt_url);
-        chart_byn.refresh("ubw?mode=byname&words=" + word + byn_url);
+        chart_bydt.filter_url = "?mode=bydaytime&words=" + word + bydt_url;
+        chart_bywd.filter_url = "?mode=byweekday&words=" + word + bywd_url;
+        chart_byt.filter_url = "?mode=bytime&words=" + word + byt_url;
+        chart_byn.filter_url = "?mode=byname&words=" + word + byn_url;
+        chart_bydt.refresh();
+        chart_bywd.refresh();
+        chart_byt.refresh();
+        chart_byn.refresh();
     });
 
     totaluasge_output.update_fun = update_fun;
@@ -318,11 +323,12 @@ function createtable(attributes_table, header, url, sort_by, data_div, row_width
     table.sort_by = sort_by;
     table.asc = false;
     table.url = url;
-    table.refresh = function () { makeapicall(table.url + "&sortby=" + table.sort_by + "&asc=" + table.asc + "&pagenumber=" + table.pagenum + "&pagesize=" + table.pagesize + "&filters=" + JSON.stringify(table.filters), function (message) { updatetable(table.getElementsByTagName("tbody")[0], message) }) };
+    table.refresh = function () { makeapicall(table.url + "&sortby=" + table.sort_by + "&asc=" + table.asc + "&pagenumber=" + table.pagenum + "&pagesize=" + table.pagesize + "&filters=" + JSON.stringify(table.filters) + table.filter_url, function (message) { updatetable(table.getElementsByTagName("tbody")[0], message) }) };
     table.pagenum = 0;
     table.pagesize = 50;
     table.length = 0;
     table.filters = {};
+    table.filter_url = "";
     table.make_emoji = make_emoji;
     table.row_widths = row_widths;
     row_id = 0;
@@ -356,7 +362,7 @@ function maketablessortable(table, filterable = false) {
         }
         th.innerHTML = th.innerHTML + (table.asc ? String.fromCharCode(9650) : String.fromCharCode(9660));
         table.sort_by = th.row_id;
-        table.refresh(table);
+        table.refresh();
     })));
     if (filterable) {
         var inputrow = document.createElement("tr");
@@ -366,27 +372,27 @@ function maketablessortable(table, filterable = false) {
             var filters = {};
             table.querySelector("thead").querySelectorAll("input").forEach(input2 => { if (input2.value != "") { filters[input2.name] = String(encodeURI(input2.value)) } });
             table.filters = filters;
-            table.refresh(table);
+            table.refresh();
         })));
     }
 }
 
 function activitybyweekday() {
     changemode(document.getElementById("btn_abw"));
-    var chart = createchart().chart;
-    add_act_controls(chart, "abw", true, "", false, true, false);
+    var chart = createchart("abw").chart;
+    add_filters([chart], chart.url, "", true, true, true, false, false);
 }
 
 function activitybydaytime() {
     changemode(document.getElementById("btn_abdt"));
-    var chart = createchart().chart;
-    add_act_controls(chart, "abdt", true, "", false, false);
+    var chart = createchart("abdt").chart;
+    add_filters([chart], chart.url, "", true, true, false, true, false);
 }
 
 function activitybytime() {
     changemode(document.getElementById("btn_abt"));
-    var chart = createchart().chart;
-    add_act_controls(chart, "abt", true, "", true);
+    var chart = createchart("abt").chart;
+    add_filters([chart], chart.url, "", true, true, true, true, true);
     chart.options.scales.xAxes = [{ type: "time" }];
 }
 
@@ -465,49 +471,51 @@ function add_time_select(parent_div, callback, id_additional = "", prepend = fal
     }, callback);
 }
 
-function add_act_controls(chart, spec_string, filter_names = true, url_additional = "", aggregation_input = false, filter_daytime = true, filter_weekday = true) {
+function add_filters(outputs, spec_string, url_additional = "", filter_types = true, filter_names = true, filter_daytime = true, filter_weekday = true, aggregation_input = false) {
     var ctrl_div = document.getElementById("controls");
     var checkbox_div = document.createElement("div");
     checkbox_div.setAttribute("style", "margin: 5px")
     checkbox_div.setAttribute("id", spec_string + "_checkboxes");
 
-    var ctype_filter_select = document.createElement("select");
-    ctype_filter_select.setAttribute("id", "ctype_select");
-    ctype_filter_select.setAttribute("multiple", "multiple");
-    var post_type_select = document.createElement("div");
-    post_type_select.setAttribute("id", "post_type_select");
-    post_type_select.setAttribute("multiple", "multiple");
-    var permessage_select = document.createElement("div");
-    permessage_select.setAttribute("id", "permessage_select");
-    permessage_select.setAttribute("multiple", "multiple");
-    var perall_select = document.createElement("div");
-    perall_select.setAttribute("id", "perall_select");
-    perall_select.setAttribute("multiple", "multiple");
-    var percharacter_select = document.createElement("div");
-    percharacter_select.setAttribute("id", "percharacter_select");
-    percharacter_select.setAttribute("multiple", "multiple");
-    var pwc_select = document.createElement("div");
-    pwc_select.setAttribute("id", "pwc_select");
-    pwc_select.setAttribute("multiple", "multiple");
-    var pergeneral_select = document.createElement("div");
-    pergeneral_select.setAttribute("id", "pergeneral_select");
-    pergeneral_select.setAttribute("multiple", "multiple");
+    if (filter_types) {
+        var ctype_filter_select = document.createElement("select");
+        ctype_filter_select.setAttribute("id", "ctype_select");
+        ctype_filter_select.setAttribute("multiple", "multiple");
+        var post_type_select = document.createElement("div");
+        post_type_select.setAttribute("id", "post_type_select");
+        post_type_select.setAttribute("multiple", "multiple");
+        var permessage_select = document.createElement("div");
+        permessage_select.setAttribute("id", "permessage_select");
+        permessage_select.setAttribute("multiple", "multiple");
+        var perall_select = document.createElement("div");
+        perall_select.setAttribute("id", "perall_select");
+        perall_select.setAttribute("multiple", "multiple");
+        var percharacter_select = document.createElement("div");
+        percharacter_select.setAttribute("id", "percharacter_select");
+        percharacter_select.setAttribute("multiple", "multiple");
+        var pwc_select = document.createElement("div");
+        pwc_select.setAttribute("id", "pwc_select");
+        pwc_select.setAttribute("multiple", "multiple");
+        var pergeneral_select = document.createElement("div");
+        pergeneral_select.setAttribute("id", "pergeneral_select");
+        pergeneral_select.setAttribute("multiple", "multiple");
 
-    pwc_select.innerHTML = "<option selected=\"selected\">Messages</option><option>Text Elements</option><option>Characters</option>";
-    ctype_filter_select.innerHTML = "<option>Words</option><option>Emojis</option><option>Punctuation</option>";
-    post_type_select.innerHTML = "<option>Media</option><option>Log Messages</option>";
-    permessage_select.innerHTML = "<option>Emojis per Message</option><option>Punctuation per Message</option><option>Words per Message</option>";
-    perall_select.innerHTML = "<option>Emojis per Textelement</option><option>Punctuation per Text Element</option><option>Words per Textelement</option";
-    percharacter_select.innerHTML = "<option>Emojis per Character</option><option>Punctuation per Character</option><option>Words per Character</option>";
-    pergeneral_select.innerHTML = "<option>Characters per Message</option><option>Text Elements per Message</option><option>Characters per Textelement</option>";
+        pwc_select.innerHTML = "<option selected=\"selected\">Messages</option><option>Text Elements</option><option>Characters</option>";
+        ctype_filter_select.innerHTML = "<option>Words</option><option>Emojis</option><option>Punctuation</option>";
+        post_type_select.innerHTML = "<option>Media</option><option>Log Messages</option>";
+        permessage_select.innerHTML = "<option>Emojis per Message</option><option>Punctuation per Message</option><option>Words per Message</option>";
+        perall_select.innerHTML = "<option>Emojis per Textelement</option><option>Punctuation per Text Element</option><option>Words per Textelement</option";
+        percharacter_select.innerHTML = "<option>Emojis per Character</option><option>Punctuation per Character</option><option>Words per Character</option>";
+        pergeneral_select.innerHTML = "<option>Characters per Message</option><option>Text Elements per Message</option><option>Characters per Textelement</option>";
 
-    checkbox_div.appendChild(pwc_select);
-    checkbox_div.appendChild(ctype_filter_select);
-    checkbox_div.appendChild(post_type_select);
-    checkbox_div.appendChild(permessage_select);
-    checkbox_div.appendChild(perall_select);
-    checkbox_div.appendChild(percharacter_select);
-    checkbox_div.appendChild(pergeneral_select);
+        checkbox_div.appendChild(pwc_select);
+        checkbox_div.appendChild(ctype_filter_select);
+        checkbox_div.appendChild(post_type_select);
+        checkbox_div.appendChild(permessage_select);
+        checkbox_div.appendChild(perall_select);
+        checkbox_div.appendChild(percharacter_select);
+        checkbox_div.appendChild(pergeneral_select);
+    }
 
     if (filter_names) {
         name_select = add_name_filter(checkbox_div);
@@ -539,19 +547,23 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
 
     ctrl_div.appendChild(checkbox_div);
 
-    $('#pwc_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Activity Type") });
-    $('#ctype_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Text Elements") });
-    $('#post_type_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Special Messages") });
-    $('#permessage_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Message") });
-    $('#perall_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Textelement") });
-    $('#percharacter_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Character") });
-    $('#pergeneral_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Miscellaneous") });
+    if (filter_types) {
+        $('#pwc_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Activity Type") });
+        $('#ctype_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Text Elements") });
+        $('#post_type_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Special Messages") });
+        $('#permessage_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Message") });
+        $('#perall_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Textelement") });
+        $('#percharacter_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Character") });
+        $('#pergeneral_select').multiselect({ numberDisplayed: 1, buttonText: (() => "Average per Miscellaneous") });
+    }
 
     var checkbox_onclick = (() => {
-        params = ["getmessages", "getall", "getchars", "getwords", "getemojis", "getpunct", "getmedia", "getlogs", "getepmsg", "getppmsg", "getwpmsg", "getepa", "getppa", "getwpa", "getepc", "getppc", "getwpc", "getcpmsg", "getapmsg", "getcpa"];
-        i = 0;
-        url = spec_string + url_additional;
-        checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { url += ((input_inner.checked) ? "&" + params[i] + "=true" : ""); i++ }));
+        url = url_additional;
+        if (filter_types) {
+            params = ["getmessages", "getall", "getchars", "getwords", "getemojis", "getpunct", "getmedia", "getlogs", "getepmsg", "getppmsg", "getwpmsg", "getepa", "getppa", "getwpa", "getepc", "getppc", "getwpc", "getcpmsg", "getapmsg", "getcpa"];
+            n = 0;
+            checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { url += ((input_inner.checked) ? "&" + params[n] + "=true" : ""); n++ }));
+        }
         if (filter_names) {
             url += append_select_to_url("namefilter", name_select);
         }
@@ -570,15 +582,17 @@ function add_act_controls(chart, spec_string, filter_names = true, url_additiona
         if (document.getElementById("timefilter_check").checked) {
             url += "&timefilter=" + $('#timefilter').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter').data("daterangepicker").endDate.format("YYYY-MM-DD")
         }
-        chart.refresh(url);
+        for (i = 0; i < outputs.length; i++) {
+            outputs[i].filter_url = url;
+            outputs[i].refresh();
+        }
     });
 
     add_time_select(checkbox_div, checkbox_onclick);
 
     checkbox_div.querySelectorAll('input').forEach(input => input.addEventListener('click', checkbox_onclick));
-    if (filter_names) {
-        select.addEventListener('change', checkbox_onclick);
-    }
+    checkbox_div.querySelectorAll('select').forEach(select => select.addEventListener('change', checkbox_onclick));
+
     if (aggregation_input) {
         aggr_input.addEventListener('change', checkbox_onclick);
     }
@@ -607,7 +621,7 @@ function updatechart(chart, data) {
     chart.resize();
 }
 
-function createchart(type = 'bar') {
+function createchart(url, type = 'bar') {
     var data_div = document.getElementById("main_data");
     var wrapper_div = document.createElement("div");
     wrapper_div.style.height = "100%";
@@ -639,7 +653,9 @@ function createchart(type = 'bar') {
     });
     wrapper_div.appendChild(data_canvas);
     data_div.appendChild(wrapper_div);
-    chart.refresh = function (url) { makeapicall(url, function (message) { updatechart(chart, message) }) };
+    chart.url = url;
+    chart.filter_url = "";
+    chart.refresh = function () { makeapicall(chart.url + chart.filter_url, function (message) { updatechart(chart, message) }) };
     wrapper_div.chart = chart;
     return wrapper_div;
 }
@@ -657,6 +673,7 @@ function destroyallothers() {
     deleteiffound("abt_checkboxes");
     deleteiffound("abn_checkboxes");
     deleteiffound("abn_radiobuttons");
+    deleteiffound("ubw_checkboxes");
     $(".daterangepicker").remove();
 }
 
