@@ -1,5 +1,10 @@
 function getloadedfile() {
     makeapicall("getloadedfile", function (message) {
+        if (message == "-") {
+            document.getElementById("primary_controls").querySelectorAll("button.mode_btn").forEach((button) => {button.setAttribute("disabled", true);})
+        } else {
+            document.getElementById("primary_controls").querySelectorAll("button.mode_btn").forEach((button) => {button.removeAttribute("disabled");})
+        }
         document.getElementById("current_file_display").innerHTML = message;
     })
 }
@@ -26,9 +31,11 @@ function pickfile() {
             getloadedfile();
         }
     };
-    dialog.showOpenDialog({ properties: ['openFile'] }, function (file) {
+    console.log("opening file dialgo");
+    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
+        console.log(file);
         if (file != undefined) {
-            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
+            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file.filePaths)), true);
             xhttp.send();
         }
     });

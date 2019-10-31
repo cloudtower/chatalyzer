@@ -659,6 +659,7 @@ def loadfile(filename):
     print("[i] New table prefix: " + table_prefix)
     if not os.path.isfile(filename):
         print("[!] File {} not found!".format(filename))
+        table_prefix = None
         return "File not found."
     fp = filename
     resetcachedbits()
@@ -803,8 +804,9 @@ def param_to_string(param, default=""):
 act_columnames = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts"]
 act_return_order = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
 sql_asc_bool = {True: "ASC", False: "DESC"}
-loadfile("/home/lion/Entwuerfe/Verschiedenes/res/WA_KK_3_fix.txt")
-resetcachedbits()
+#loadfile("/home/lion/Entwuerfe/Verschiedenes/res/WA_KK_3_fix.txt")
+#resetcachedbits()
+table_prefix = None
 default_settings_file = "../settings.conf"
 default_settings = {
     "default_lang": {
