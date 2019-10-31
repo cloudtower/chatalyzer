@@ -10,6 +10,7 @@ import sqlite3
 import binascii
 import datetime
 import unicodedata
+
 from time import sleep
 from flask import Flask
 from flask import request
@@ -311,7 +312,7 @@ def compute_activity():
 
     name_last = "unknown"
 
-    with open(fp) as f:
+    with open(fp, encoding="utf-8") as f:
         for line in f:
             try:
                 entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
@@ -493,7 +494,7 @@ def compute_usage():
 
     entries = []
 
-    with open(fp) as f:
+    with open(fp, encoding="utf-8") as f:
         for line in f:
             try:
                 if re.search(re_lang_filter_media, line) is None:
