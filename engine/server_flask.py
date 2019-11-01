@@ -33,7 +33,7 @@ DEFAULT_SETTINGS = {
     }
 }
 
-server = Flask("wa_filter_backend")
+server = Flask("chatalyzer_backend")
 
 class APIState():
     def __init__(self):

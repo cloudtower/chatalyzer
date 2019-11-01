@@ -1,7 +1,7 @@
 {
-  "name": "wagui",
+  "name": "Chatalyzer",
   "version": "1.0.0",
-  "description": "A WhatsApp Analyzer GUI",
+  "description": "A Chat Analyzing GUI",
   "main": "startup.js",
   "scripts": {
     "start": "electron ."
@@ -10,7 +10,8 @@
     "Electron",
     "WhatsApp",
     "GUI",
-    "Analyzer"
+    "Analyzer",
+    "Chat"
   ],
   "author": "Lion Steger",
   "devDependencies": {

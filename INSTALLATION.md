@@ -24,4 +24,10 @@ To start the UI, go to the `gui` directory and run `npm start`.
 
 ## Windows standalone
 
-To build a Windows executable of the server side, run the `setup_win64.py` script in the `engine` directory. For the front end, download the latest electron release.
+### From source
+
+To build a Windows executable of the server side, run the `setup_win64.py` script in the `engine` directory. For the front end, download the latest electron [release](https://github.com/electron/electron/releases, "Electron releases").
+
+### From prebuilt
+
+To run the program from the prebuilt archive, run the `chatalyzer.bat` file.

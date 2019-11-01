@@ -15,6 +15,8 @@ function createWindow () {
     }
   })
 
+  mainWindow.maximize()
+
   // and load the index.html of the app.
   mainWindow.loadFile('main.html')
 
