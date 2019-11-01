@@ -31,11 +31,9 @@ function pickfile() {
             getloadedfile();
         }
     };
-    console.log("opening file dialgo");
-    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
-        console.log(file);
+    dialog.showOpenDialog({ properties: ['openFile'] }, function (file) {
         if (file != undefined) {
-            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file.filePaths)), true);
+            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
             xhttp.send();
         }
     });
@@ -92,7 +90,7 @@ function usagebyword() {
     div_lower.style.display = "inline-block";
     var table_w_div = createtable("", "<tr><th name=\"word\">Word</th><th>Usage</th></tr>", "ubc?type=word", 1, div_upper, ["75"]);
     var table_e_div = createtable("", "<tr><th>Emoji</th><th>Usage</th></tr>", "ubc?type=emoji", 1, div_upper, ["75"], make_emoji=0);
-    var table_p_div = createtable("", "<tr><th>Puctuation</th><th>Usage</th></tr>", "ubc?type=punct", 1, div_upper, ["75"]);
+    var table_p_div = createtable("", "<tr><th>Punctuation</th><th>Usage</th></tr>", "ubc?type=punct", 1, div_upper, ["75"]);
     var table_l_div = createtable("", "<tr><th>Links</th><th>Usage</th></tr>", "ubc?type=link", 1, div_lower, ["90"], make_emoji=0);
     var table_u_div = createtable("", "<tr><th>Uncategorized</th><th>Usage</th></tr>", "ubc?type=uncat", 1, div_lower, ["75"], make_emoji=0);
     var table_w = table_w_div.querySelector("table");

@@ -16,23 +16,129 @@ from flask import Flask
 from flask import request
 from html.parser import HTMLParser
 
+ACT_COLUMNAMES = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts"]
+ACT_RETURN_ORDER = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
+SQL_ASC_BOOL = {True: "ASC", False: "DESC"}
+DEFAULT_SETTINGS_FILE = "../settings.conf"
+DEFAULT_SETTINGS = {
+    "default_lang": {
+        "desc": "Default Language",
+        "options": ["en", "de"],
+        "selected": "0"
+    },
+    "color_scheme": {
+        "desc": "Color Scheme",
+        "options": ["dark"],
+        "selected": "0"
+    }
+}
+
 server = Flask("wa_filter_backend")
+
+class APIState():
+    def __init__(self):
+        self.table_prefix = None
+        self.fp = None
+
+        self.setlang()
+        self.parse_config_file()
+
+    def resetcachedbits(self):
+        db_conn = sqlite3.connect("chats.db")
+        db_cursor = db_conn.cursor()
+
+        self.act_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((self.table_prefix + "-act"), )))) > 0)
+        self.act_wait = False
+        self.ubc_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((self.table_prefix + "-ubw"), )))) > 0)
+        self.ubc_wait = False
+
+    def loadstopwords(self, lang="en"):
+        self.stopwords = []
+        save = False
+        try:
+            f = open("stopwords.txt")
+            for line in f:
+                if save and line == "":
+                    save = False
+                if save:
+                    stopwords.append(line.strip("\n"))
+                if re.match(r"\[(\w+)\]", line) is not None:
+                    if re.match(r"\[(\w+)\]$", line).group(1) == lang:
+                        save = True
+        except IOError:
+            print("[!] Error while reading stopwords file!")
+
+    def setlang(self, lang="en"):
+        if lang == "en":
+            self.re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
+            self.re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
+            self.re_lang_filter_media = r"<Media omitted>"
+            self.re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
+            self.lang_datetime = "%m/%d/%y, %H:%M"
+            self.lang_global = "en"
+        elif lang == "de":
+            self.re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
+            self.re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
+            self.re_lang_filter_media = r"<Medien ausgeschlossen>"
+            self.re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
+            self.lang_datetime = "%d.%m.%y, %H:%M"
+            self.lang_global = "de"
+
+        self.db_datetime = "%Y-%m-%d"
+
+    def parse_config_file(self):
+        try:
+            with open(DEFAULT_SETTINGS_FILE) as f:
+                settings_json = f.read()
+        except IOError:
+            print("[!] Error: Config file not found!")
+            settings_json = ""
+
+        try:
+            self.settings_global = json.loads(settings_json)
+        except json.decoder.JSONDecodeError as e:
+            print("[!] Encountered error while parsing settings:")
+            print(e)
+            self.settings_global = DEFAULT_SETTINGS
+
+        for key, value in self.settings_global.items():
+            self.parse_config(key, int(value["selected"]))
+
+    def parse_config(self, key, index):
+        if key == "default_lang":
+            try:
+                self.setlang(self.settings_global["default_lang"]["options"][index])
+            except IndexError:
+                self.setlang()
+
+    def loadfile(self, filename):
+        print("[i] " + filename)
+        self.table_prefix = re.split(r"[\/\\]", filename)[-1].split(".")[0]
+        self.table_prefix = re.sub(r"\W", "_", self.table_prefix)
+        print("[i] New table prefix: " + self.table_prefix)
+
+        if not os.path.isfile(filename):
+            print("[!] File {} not found!".format(filename))
+            self.table_prefix = None
+            return "File not found."
+
+        self.fp = filename
+        self.resetcachedbits()
+        return "Successfully loaded file."
 
 @server.route("/api/getloadedfile")
 def get_loaded_file():
-    if table_prefix is None:
+    if api_state.table_prefix is None:
         return "-"
-    return table_prefix
+    return api_state.table_prefix
 
 @server.route("/api/getnames")
 def get_names():
-    global act_wait
-
-    while act_wait:
+    while api_state.act_wait:
         sleep(0.1)
 
-    if not act_cached:
-        act_wait = True
+    if not api_state.act_cached:
+        api_state.act_wait = True
         print("[+] No Cache for act. Computing...")
         compute_activity()
 
@@ -40,17 +146,15 @@ def get_names():
 
 def find_names():
     _, db_cursor = getdbconnection()
-    return list(db_cursor.execute("SELECT DISTINCT name FROM '%s' ORDER BY name" % (table_prefix + '-act')))
+    return list(db_cursor.execute("SELECT DISTINCT name FROM '%s' ORDER BY name" % (api_state.table_prefix + '-act')))
 
 @server.route("/api/actraw")
 def get_activity_raw():
-    global act_wait
-
-    while act_wait:
+    while api_state.act_wait:
         sleep(0.1)
 
-    if not act_cached:
-        act_wait = True
+    if not api_state.act_cached:
+        api_state.act_wait = True
         compute_activity()
 
     pagesize = param_to_int(request.args.get("pagesize"), 50)
@@ -59,7 +163,7 @@ def get_activity_raw():
     sort = param_to_int(request.args.get("sortby"))
     filters = json.loads(request.args.get("filters"))
 
-    sql = "SELECT * FROM '%s' " % (table_prefix + '-act')
+    sql = "SELECT * FROM '%s' " % (api_state.table_prefix + '-act')
 
     params = []
     first = True
@@ -75,21 +179,20 @@ def get_activity_raw():
 
     length = list(db_cursor.execute("SELECT COUNT(*) FROM(" + sql + ")", params))[0]
 
-    sql += " ORDER BY %s %s LIMIT %s OFFSET %s" % (act_columnames[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize))
+    sql += " ORDER BY %s %s LIMIT %s OFFSET %s" % (ACT_COLUMNAMES[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize))
 
     return json.dumps((length, list(db_cursor.execute(sql, params))))
 
 
 @server.route("/api/abn")
 def get_activity_by_name():
-    global act_wait
     db_conn, db_cursor = getdbconnection()
 
-    while act_wait:
+    while api_state.act_wait:
         sleep(0.1)
 
-    if not act_cached:
-        act_wait = True
+    if not api_state.act_cached:
+        api_state.act_wait = True
         compute_activity()
 
     asc = param_to_bool(request.args.get("asc"))
@@ -103,14 +206,21 @@ def get_activity_by_name():
         output = activity_filter(db_output)
         return json.dumps(([el[0] for el in db_output], output))
     else:
-        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s' GROUP BY name ORDER BY %s %s" % ((table_prefix + '-act'), act_return_order[sort], sql_asc_bool[asc])))
-        return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '%s' GROUP BY name)" % (table_prefix + '-act')))[0], db_output))
+        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s' GROUP BY name ORDER BY %s %s" % ((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc])))
+        return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '%s' GROUP BY name)" % (api_state.table_prefix + '-act')))[0], db_output))
 
     db_conn.close()
 
 
 @server.route("/api/abw")
 def get_activity_by_weekday():
+    while api_state.act_wait:
+        sleep(0.1)
+
+    if not api_state.act_cached:
+        api_state.act_wait = True
+        compute_activity()
+
     labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
     db_output = activity_db_request("weekday")
@@ -122,6 +232,13 @@ def get_activity_by_weekday():
 
 @server.route("/api/abdt")
 def get_activity_by_daytime():
+    while api_state.act_wait:
+        sleep(0.1)
+
+    if not api_state.act_cached:
+        api_state.act_wait = True
+        compute_activity()
+
     labels = [str(i) + ":00" for i in range(0, 24)]
 
     db_output = activity_db_request("hour")
@@ -133,6 +250,13 @@ def get_activity_by_daytime():
 
 @server.route("/api/abt")
 def get_activity_by_time():
+    while api_state.act_wait:
+        sleep(0.1)
+
+    if not api_state.act_cached:
+        api_state.act_wait = True
+        compute_activity()
+
     db_output = activity_db_request("date")
 
     aggr = param_to_int(request.args.get("aggregate"), 7)
@@ -148,7 +272,7 @@ def get_activity_by_time():
         aggr_count = 1
         doavg = "per" in el[0]
         for el2 in el[1]:
-            delta = ((datetime.datetime.strptime(el2[0], db_datetime)) - (datetime.datetime.strptime(aggr_date, db_datetime))).days
+            delta = ((datetime.datetime.strptime(el2[0], api_state.db_datetime)) - (datetime.datetime.strptime(aggr_date, api_state.db_datetime))).days
             if delta < aggr:
                 aggr_count += 1
                 aggr_sum += el2[1]
@@ -224,17 +348,15 @@ def output_split(indexes, db_output, timemode=False, operator="", sum_all=[]):
         return [(el[0], el[indexes[0]]) if timemode else el[indexes[0]] for el in db_output]
 
 def activity_db_request(group_by):
-    sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, table_prefix + '-act')
+    sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, api_state.table_prefix + '-act')
     return db_request(sql, group_by, [])
 
 def db_request(sql, group_by, params, setand=False, sql_postfix=""):
-    global act_wait
-
-    while act_wait:
+    while api_state.act_wait:
         sleep(0.1)
 
-    if not act_cached:
-        act_wait = True
+    if not api_state.act_cached:
+        api_state.act_wait = True
         compute_activity()
 
     def sql_and(setand, sql):
@@ -287,20 +409,22 @@ def db_request(sql, group_by, params, setand=False, sql_postfix=""):
 def activity_db_pad(labels, output, dontsort=False):
     if not output:
         return output
+
     output_labels = [el[0] for el in output]
+
     for el in labels:
         if el not in output_labels:
             output.append((el, ) + (0, ) * (len(output[0]) - 1))
             output_labels.append(el)
+
     output = sorted(output, key=lambda x: x[0])
     return output
 
 
 def compute_activity():
-    global act_cached, act_wait
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)" % (table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)" % (api_state.table_prefix + "-act"))
 
     weekday_last = 0
     hour_last = 0
@@ -312,20 +436,20 @@ def compute_activity():
 
     name_last = "unknown"
 
-    with open(fp, encoding="utf-8") as f:
+    with open(api_state.fp, encoding="utf-8") as f:
         for line in f:
             try:
                 entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-                has_date = re.match(re_lang_filter_syntax, line) is not None
-                has_name = re.match(re_lang_filter_log_syntax, line) is None
-                is_media = re.search(re_lang_filter_media, line) is not None
+                has_date = re.match(api_state.re_lang_filter_syntax, line) is not None
+                has_name = re.match(api_state.re_lang_filter_log_syntax, line) is None
+                is_media = re.search(api_state.re_lang_filter_media, line) is not None
                 is_message = has_date
 
                 if has_date:
                     time = line.split(" - ")[0]
                     hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                    date_last = datetime.datetime.strptime(time, lang_datetime)
+                    date_last = datetime.datetime.strptime(time, api_state.lang_datetime)
                     weekday_last = date_last.weekday()
                     day_last = date_last.date()
 
@@ -356,11 +480,11 @@ def compute_activity():
                                 inter_punct.append(part)
 
                         for word in inter_punct:
-                            for part in re.split(r"("+re_lang_special_chars+r")", word):
+                            for part in re.split(r"("+api_state.re_lang_special_chars+r")", word):
                                 inter_emoji.append(part)
 
                         for word in inter_emoji:
-                            if re.match(r"[\wäöü]+", word) is None and re.match(re_lang_special_chars, word) is None:
+                            if re.match(r"[\wäöü]+", word) is None and re.match(api_state.re_lang_special_chars, word) is None:
                                 for c in word:
                                     filtered.append(c)
                             else:
@@ -374,7 +498,7 @@ def compute_activity():
                             if word != "\n" and word != "":
                                 if re.match(r'\w+', word, re.UNICODE):
                                     words += 1
-                                elif re.match(re_lang_special_chars, word):
+                                elif re.match(api_state.re_lang_special_chars, word):
                                     puncts += 1
                                 elif len(word) == 1 and isemoji(word):
                                     emojis += 1
@@ -393,13 +517,13 @@ def compute_activity():
                 entries.append((name, ) + element[1:])
 
     print("[-] Almost done, committing")
-    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (table_prefix + "-act"), entries)
+    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
     print("[-] Done")
 
-    act_cached = True
-    act_wait = False
+    api_state.act_cached = True
+    api_state.act_wait = False
 
 
 
@@ -412,8 +536,8 @@ def ubc_db_request():
     chartype = request.args.get("type")
     return_order = ["word", "usage"]
 
-    db_output = db_request("SELECT word, SUM(is%s) as usage FROM '%s' WHERE is%s=1" % (chartype, table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY %s %s LIMIT %s OFFSET %s" % (return_order[sort], sql_asc_bool[asc], str(pagesize), str(pagenumber * pagesize)))
-    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE is%s=1" % (table_prefix + '-ubw', chartype), "word", [], True, ")")
+    db_output = db_request("SELECT word, SUM(is%s) as usage FROM '%s' WHERE is%s=1" % (chartype, api_state.table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY %s %s LIMIT %s OFFSET %s" % (return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
+    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE is%s=1" % (api_state.table_prefix + '-ubw', chartype), "word", [], True, ")")
     if chartype == "uncat":
         return output_len, [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
     else:
@@ -421,13 +545,11 @@ def ubc_db_request():
 
 @server.route("/api/ubc")
 def get_usage_by_character():
-    global ubc_wait
-
-    while ubc_wait:
+    while api_state.ubc_wait:
         sleep(0.1)
 
-    if ubc_cached == False:
-        ubc_wait = True
+    if api_state.ubc_cached == False:
+        api_state.ubc_wait = True
         print("[+] No Cache for ubc. Computing...")
         compute_usage()
 
@@ -437,19 +559,18 @@ def get_usage_by_character():
 
 
 def ubw_db_request(word, group_by):
-    return db_request("SELECT %s, (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word=?" % (group_by, table_prefix + '-ubw'), group_by, [word], True)
+    return db_request("SELECT %s, (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word=?" % (group_by, api_state.table_prefix + '-ubw'), group_by, [word], True)
 
 
 @server.route("/api/ubw")
 def get_usage_by_word():
-    global ubc_wait
     db_conn, db_cursor = getdbconnection()
 
-    while ubc_wait:
+    while api_state.ubc_wait:
         sleep(0.1)
 
-    if ubc_cached == False:
-        ubc_wait = True
+    if api_state.ubc_cached == False:
+        api_state.ubc_wait = True
         print("[+] No Cache for ubc. Computing...")
         compute_usage()
 
@@ -467,14 +588,13 @@ def get_usage_by_word():
         names = [el[0] for el in find_names()]
         return json.dumps((names, [(word, [el[1] for el in activity_db_pad(names, ubw_db_request(word, "name"))]) for word in words]))
     elif mode == "total":
-        return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word like ?" % (table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
+        return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word like ?" % (api_state.table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
 
 
 def compute_usage():
-    global ubc_cached, ubc_wait
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)" % (table_prefix + "-ubw"))
+    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)" % (api_state.table_prefix + "-ubw"))
 
     weekday_last = 0
     hour_last = 0
@@ -483,18 +603,18 @@ def compute_usage():
 
     entries = []
 
-    with open(fp, encoding="utf-8") as f:
+    with open(api_state.fp, encoding="utf-8") as f:
         for line in f:
             try:
-                if re.search(re_lang_filter_media, line) is None:
-                    if re.match(re_lang_filter_log_syntax, line) is None:
+                if re.search(api_state.re_lang_filter_media, line) is None:
+                    if re.match(api_state.re_lang_filter_log_syntax, line) is None:
                         entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, "")
 
-                        if re.search(re_lang_filter_syntax, line) is not None:
+                        if re.search(api_state.re_lang_filter_syntax, line) is not None:
                             linesplit = line.split(" - ", 1)
                             time = linesplit[0]
                             hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                            date_last = datetime.datetime.strptime(time, lang_datetime)
+                            date_last = datetime.datetime.strptime(time, api_state.lang_datetime)
                             weekday_last = date_last.weekday()
                             day_last = date_last.date()
                             linesplit = linesplit[1].split(': ', 1)
@@ -521,7 +641,7 @@ def compute_usage():
                                     inter_punct.append(part)
 
                         for word in inter_punct:
-                            for part in re.split(r"("+re_lang_special_chars+r")", word):
+                            for part in re.split(r"("+api_state.re_lang_special_chars+r")", word):
                                 inter_emoji.append(part)
 
                         for i, word in enumerate(inter_emoji):
@@ -532,7 +652,7 @@ def compute_usage():
                                 filtered.append(word[-1] + inter_emoji[i + 1][0])
                                 inter_emoji[i + 1] = inter_emoji[i + 1][1:]
                             else:
-                                if re.match(r"[\wäöü]+$", word) is None and re.match(re_lang_special_chars + r"$", word) is None:
+                                if re.match(r"[\wäöü]+$", word) is None and re.match(api_state.re_lang_special_chars + r"$", word) is None:
                                     j = 0
                                     while j < len(word):
                                         toappend = word[j]
@@ -555,7 +675,7 @@ def compute_usage():
                                 word = word.lower()
                                 if re.match(r'\w+$', word, re.UNICODE):
                                     entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word)
-                                elif re.match(re_lang_special_chars, word):
+                                elif re.match(api_state.re_lang_special_chars, word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
                                 elif len(word) <= 2 and isemoji(word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
@@ -571,13 +691,13 @@ def compute_usage():
                 print("[!] Caught exception scanning ubw: " + str(e))
 
     print("[-] Almost done, committing")
-    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (table_prefix + "-ubw"), entries)
+    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (api_state.table_prefix + "-ubw"), entries)
     db_conn.commit()
     db_conn.close()
     print("[-] Done")
 
-    ubc_cached = True
-    ubc_wait = False
+    api_state.ubc_cached = True
+    api_state.ubc_wait = False
 
 
 @server.route("/api/getoptions")
@@ -585,29 +705,27 @@ def get_settings():
     key = param_to_string(request.args.get("key"), None)
 
     if key is None:
-        return json.dumps(settings_global)
+        return json.dumps(api_state.settings_global)
     else:
         try:
-            return json.dumps(settings_global[key])
+            return json.dumps(api_state.settings_global[key])
         except KeyError:
-            return json.dumps(settings_global)
+            return json.dumps(api_state.settings_global)
 
 
 @server.route("/api/setoption")
 def set_setting():
-    global settings_global
-
     key = param_to_string(request.args.get("key"))
     value = param_to_string(request.args.get("value"))
 
     try:
-        settings_global[key]["selected"] = value
+        api_state.settings_global[key]["selected"] = value
     except KeyError:
         return "Error: no such option"
 
     try:
-        with open(default_settings_file, "w") as f:
-            f.write(json.dumps(settings_global))
+        with open(DEFAULT_SETTINGS_FILE, "w") as f:
+            f.write(json.dumps(api_state.settings_global))
         return "Success"
     except IOError as e:
         print("[!] Error writing config file!")
@@ -615,114 +733,23 @@ def set_setting():
         return "Error: IOError"
 
 
-def parse_config_file():
-    global settings_global
-
-    try:
-        with open(default_settings_file) as f:
-            settings_json = f.read()
-    except IOError:
-        print("[!] Error: Config file not found!")
-        settings_json = ""
-
-    try:
-        settings_global = json.loads(settings_json)
-    except json.decoder.JSONDecodeError as e:
-        print("[!] Encountered error while parsing settings:")
-        print(e)
-        settings_global = default_settings
-
-    for key, value in settings_global.items():
-        parse_config(key, int(value["selected"]))
-
-def parse_config(key, index):
-    if key == "default_lang":
-        try:
-            setdefaultlang(settings_global["default_lang"]["options"][index])
-        except IndexError:
-            setdefaultlang()
-
 @server.route("/api/loadfile")
 def get_loadfile():
     filename = request.args.get("filename")
     if filename == None:
         return "No file specified."
-    return loadfile(filename)
-
-
-def loadfile(filename):
-    global fp, table_prefix
-
-    print("[i] " + filename)
-    table_prefix = re.split(r"[\/\\]", filename)[-1].split(".")[0]
-    table_prefix = re.sub(r"\W", "_", table_prefix)
-    print("[i] New table prefix: " + table_prefix)
-    if not os.path.isfile(filename):
-        print("[!] File {} not found!".format(filename))
-        table_prefix = None
-        return "File not found."
-    fp = filename
-    resetcachedbits()
-    return "Successfully loaded file."
+    return api_state.loadfile(filename)
 
 
 @server.route("/api/getlang")
 def getlang():
-    return lang_global
+    return api_state.lang_global
 
 @server.route("/api/setlang")
 def setlang():
     lang = param_to_string(request.args.get("lang"), "en")
-    setdefaultlang(lang)
+    api_state.setlang(lang)
     return "Language successfully set."
-
-
-def setdefaultlang(lang="en"):
-    global re_lang_filter_syntax, re_lang_filter_log_syntax, re_lang_filter_media, re_lang_special_chars, lang_datetime, db_datetime, lang_global
-    if lang == "en":
-        re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
-        re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
-        re_lang_filter_media = r"<Media omitted>"
-        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
-        lang_datetime = "%m/%d/%y, %H:%M"
-        lang_global = "en"
-    elif lang == "de":
-        re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
-        re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
-        re_lang_filter_media = r"<Medien ausgeschlossen>"
-        re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
-        lang_datetime = "%d.%m.%y, %H:%M"
-        lang_global = "de"
-    db_datetime = "%Y-%m-%d"
-
-def resetcachedbits():
-    global act_cached, act_wait, ubc_cached, ubc_wait
-
-    db_conn = sqlite3.connect("chats.db")
-    db_cursor = db_conn.cursor()
-
-    act_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((table_prefix + "-act"), )))) > 0)
-    act_wait = False
-    ubc_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((table_prefix + "-ubw"), )))) > 0)
-    ubc_wait = False
-
-
-def loadstopwords(lang="en"):
-    global stopwords
-    stopwords = []
-    save = False
-    try:
-        f = open("stopwords.txt")
-        for line in f:
-            if save and line == "":
-                save = False
-            if save:
-                stopwords.append(line.strip("\n"))
-            if re.match(r"\[(\w+)\]", line) is not None:
-                if re.match(r"\[(\w+)\]$", line).group(1) == lang:
-                    save = True
-    except IOError:
-        print("[!] Error while reading stopwords file!")
 
 
 def isemoji(ch):
@@ -800,27 +827,10 @@ def param_to_string(param, default=""):
     else:
         return param
 
-
-act_columnames = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts"]
-act_return_order = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
-sql_asc_bool = {True: "ASC", False: "DESC"}
 #loadfile("/home/lion/Entwuerfe/Verschiedenes/res/WA_KK_3_fix.txt")
 #resetcachedbits()
-table_prefix = None
-default_settings_file = "../settings.conf"
-default_settings = {
-    "default_lang": {
-        "desc": "Default Language",
-        "options": ["en", "de"],
-        "selected": "0"
-    },
-    "color_scheme": {
-        "desc": "Color Scheme",
-        "options": ["dark"],
-        "selected": "0"
-    }
-}
-parse_config_file()
+
+api_state = APIState()
 
 if __name__ == "__main__":
     server.run()
