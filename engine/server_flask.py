@@ -55,6 +55,7 @@ class APIState():
     def loadstopwords(self, lang="en"):
         self.stopwords = []
         save = False
+
         try:
             f = open("stopwords.txt")
             for line in f:
@@ -126,11 +127,14 @@ class APIState():
         self.resetcachedbits()
         return "Successfully loaded file."
 
+
 @server.route("/api/getloadedfile")
 def get_loaded_file():
     if api_state.table_prefix is None:
         return "-"
+
     return api_state.table_prefix
+
 
 @server.route("/api/getnames")
 def get_names():
@@ -144,9 +148,10 @@ def get_names():
 
     return json.dumps(find_names())
 
+
 def find_names():
     _, db_cursor = getdbconnection()
-    return list(db_cursor.execute("SELECT DISTINCT name FROM '%s' ORDER BY name" % (api_state.table_prefix + '-act')))
+    return list(db_cursor.execute("SELECT DISTINCT name FROM '{}' ORDER BY name".format(api_state.table_prefix + '-act')))
 
 @server.route("/api/actraw")
 def get_activity_raw():
@@ -163,23 +168,23 @@ def get_activity_raw():
     sort = param_to_int(request.args.get("sortby"))
     filters = json.loads(request.args.get("filters"))
 
-    sql = "SELECT * FROM '%s' " % (api_state.table_prefix + '-act')
+    sql = "SELECT * FROM '{}' ".format(api_state.table_prefix + '-act')
 
     params = []
     first = True
     for key in filters.keys():
         if first:
             first = False
-            sql += " WHERE %s=?" % (re.sub(r"\W", "_", key))
+            sql += " WHERE {}=?".format(re.sub(r"\W", "_", key))
         else:
-            sql += " AND %s=?" % (re.sub(r"\W", "_", key))
+            sql += " AND {}=?".format(re.sub(r"\W", "_", key))
         params.append(filters[key])
 
     _, db_cursor = getdbconnection()
 
     length = list(db_cursor.execute("SELECT COUNT(*) FROM(" + sql + ")", params))[0]
 
-    sql += " ORDER BY %s %s LIMIT %s OFFSET %s" % (ACT_COLUMNAMES[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize))
+    sql += " ORDER BY {} {} LIMIT {} OFFSET {}".format(ACT_COLUMNAMES[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize))
 
     return json.dumps((length, list(db_cursor.execute(sql, params))))
 
@@ -206,8 +211,8 @@ def get_activity_by_name():
         output = activity_filter(db_output)
         return json.dumps(([el[0] for el in db_output], output))
     else:
-        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s' GROUP BY name ORDER BY %s %s" % ((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc])))
-        return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '%s' GROUP BY name)" % (api_state.table_prefix + '-act')))[0], db_output))
+        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '{}' GROUP BY name ORDER BY {} {}".format((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc])))
+        return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '{}' GROUP BY name)".format(api_state.table_prefix + '-act')))[0], db_output))
 
     db_conn.close()
 
@@ -243,7 +248,7 @@ def get_activity_by_daytime():
 
     db_output = activity_db_request("hour")
 
-    output = activity_filter(activity_db_pad([i for i in range(0, 24)], db_output))
+    output = activity_filter(activity_db_pad(list(range(24)), db_output))
 
     return json.dumps((labels, output))
 
@@ -271,6 +276,7 @@ def get_activity_by_time():
         aggr_sum = 0
         aggr_count = 1
         doavg = "per" in el[0]
+
         for el2 in el[1]:
             delta = ((datetime.datetime.strptime(el2[0], api_state.db_datetime)) - (datetime.datetime.strptime(aggr_date, api_state.db_datetime))).days
             if delta < aggr:
@@ -347,9 +353,11 @@ def output_split(indexes, db_output, timemode=False, operator="", sum_all=[]):
     else:
         return [(el[0], el[indexes[0]]) if timemode else el[indexes[0]] for el in db_output]
 
+
 def activity_db_request(group_by):
-    sql = "SELECT %s as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '%s'" % (group_by, api_state.table_prefix + '-act')
+    sql = "SELECT {} as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '{}'".format(group_by, api_state.table_prefix + '-act')
     return db_request(sql, group_by, [])
+
 
 def db_request(sql, group_by, params, setand=False, sql_postfix=""):
     while api_state.act_wait:
@@ -381,7 +389,7 @@ def db_request(sql, group_by, params, setand=False, sql_postfix=""):
             date_start = datetime.datetime.strptime(split[0], "%Y-%m-%d")
             date_end = datetime.datetime.strptime(split[1], "%Y-%m-%d")
             setand, sql = sql_and(setand, sql)
-            sql += " date BETWEEN '%s' AND '%s'" % (date_start, date_end)
+            sql += " date BETWEEN '{}' AND '{}'".format(date_start, date_end)
         except:
             print("[!] Not a valid date!")
 
@@ -397,7 +405,7 @@ def db_request(sql, group_by, params, setand=False, sql_postfix=""):
         sql += " hour=?"
         params += [daytime_filter]
 
-    sql += " GROUP BY %s" % group_by
+    sql += " GROUP BY {}".format(group_by)
 
     db_output = list(db_cursor.execute(sql + sql_postfix, params))
 
@@ -424,7 +432,7 @@ def activity_db_pad(labels, output, dontsort=False):
 def compute_activity():
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)" % (api_state.table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
 
     weekday_last = 0
     hour_last = 0
@@ -517,14 +525,13 @@ def compute_activity():
                 entries.append((name, ) + element[1:])
 
     print("[-] Almost done, committing")
-    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (api_state.table_prefix + "-act"), entries)
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
     print("[-] Done")
 
     api_state.act_cached = True
     api_state.act_wait = False
-
 
 
 def ubc_db_request():
@@ -536,12 +543,14 @@ def ubc_db_request():
     chartype = request.args.get("type")
     return_order = ["word", "usage"]
 
-    db_output = db_request("SELECT word, SUM(is%s) as usage FROM '%s' WHERE is%s=1" % (chartype, api_state.table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY %s %s LIMIT %s OFFSET %s" % (return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
-    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '%s' WHERE is%s=1" % (api_state.table_prefix + '-ubw', chartype), "word", [], True, ")")
+    db_output = db_request("SELECT word, SUM(is{}) as usage FROM '{}' WHERE is{}=1".format(chartype, api_state.table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY {} {} LIMIT {} OFFSET {}".format(return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
+    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '{}' WHERE is{}=1".format(api_state.table_prefix + '-ubw', chartype), "word", [], True, ")")
+
     if chartype == "uncat":
         return output_len, [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
     else:
         return output_len, db_output
+
 
 @server.route("/api/ubc")
 def get_usage_by_character():
@@ -559,7 +568,7 @@ def get_usage_by_character():
 
 
 def ubw_db_request(word, group_by):
-    return db_request("SELECT %s, (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word=?" % (group_by, api_state.table_prefix + '-ubw'), group_by, [word], True)
+    return db_request("SELECT {}, (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '{}' WHERE word=?".format(group_by, api_state.table_prefix + '-ubw'), group_by, [word], True)
 
 
 @server.route("/api/ubw")
@@ -588,13 +597,13 @@ def get_usage_by_word():
         names = [el[0] for el in find_names()]
         return json.dumps((names, [(word, [el[1] for el in activity_db_pad(names, ubw_db_request(word, "name"))]) for word in words]))
     elif mode == "total":
-        return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '%s' WHERE word like ?" % (api_state.table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
+        return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '{}' WHERE word like ?".format(api_state.table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
 
 
 def compute_usage():
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '%s' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)" % (api_state.table_prefix + "-ubw"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
 
     weekday_last = 0
     hour_last = 0
@@ -691,7 +700,7 @@ def compute_usage():
                 print("[!] Caught exception scanning ubw: " + str(e))
 
     print("[-] Almost done, committing")
-    db_cursor.executemany("INSERT INTO '%s' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" % (api_state.table_prefix + "-ubw"), entries)
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-ubw"), entries)
     db_conn.commit()
     db_conn.close()
     print("[-] Done")
@@ -736,8 +745,10 @@ def set_setting():
 @server.route("/api/loadfile")
 def get_loadfile():
     filename = request.args.get("filename")
+
     if filename == None:
         return "No file specified."
+
     return api_state.loadfile(filename)
 
 
@@ -745,10 +756,12 @@ def get_loadfile():
 def getlang():
     return api_state.lang_global
 
+
 @server.route("/api/setlang")
 def setlang():
     lang = param_to_string(request.args.get("lang"), "en")
     api_state.setlang(lang)
+
     return "Language successfully set."
 
 
@@ -782,9 +795,11 @@ def isregionalindicator(ch):
     i = ord(ch)
     return (i in range(0x1f1e6, 0x1f200))
 
+
 def getdbconnection():
     db_conn = sqlite3.connect("chats.db")
     db_cursor = db_conn.cursor()
+
     return (db_conn, db_cursor)
 
 
@@ -794,6 +809,7 @@ def safediv(num, denom):
         denom = int(denom)
     except (ValueError, TypeError):
         return 0
+
     if denom == 0:
         return 0
     else:
