@@ -843,9 +843,6 @@ def param_to_string(param, default=""):
     else:
         return param
 
-#loadfile("/home/lion/Entwuerfe/Verschiedenes/res/WA_KK_3_fix.txt")
-#resetcachedbits()
-
 api_state = APIState()
 
 if __name__ == "__main__":

@@ -8,4 +8,4 @@ Pick a chat file (make sure to select the correct language beforehand!) and clic
 
 At the moment, this tool only supports chat data exported via e-mail from Android devices running in English or German language mode. More devices and languages coming soon.
 
-[Screenshot](screenshot.png)
+![Screenshot](screenshot.png)
