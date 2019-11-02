@@ -85,6 +85,8 @@ class APIState():
             self.lang_datetime = "%d.%m.%y, %H:%M"
             self.lang_global = "de"
 
+        self.textemojis = ["^^", ":)", ";)", ":D", "xD", ";P", ":P", ";D", ":-)", ";-)", ":-D", ":d", ";d", "<3", "-.-", ":(", ":/", ">_<"]
+        self.re_textemojis = r"|".join([re.escape(el) for el in self.textemojis])
         self.db_datetime = "%Y-%m-%d"
 
     def parse_config_file(self):
@@ -645,7 +647,7 @@ def compute_usage():
                                     inter_punct.append(part)
 
                         for word in inter_punct:
-                            for part in re.split(r"("+api_state.re_lang_special_chars+r")", word):
+                            for part in re.split(r"(" + api_state.re_textemojis + r"|" + api_state.re_lang_special_chars + r")", word):
                                 inter_emoji.append(part)
 
                         for i, word in enumerate(inter_emoji):
@@ -656,7 +658,7 @@ def compute_usage():
                                 filtered.append(word[-1] + inter_emoji[i + 1][0])
                                 inter_emoji[i + 1] = inter_emoji[i + 1][1:]
                             else:
-                                if re.match(r"[\wäöü]+$", word) is None and re.match(api_state.re_lang_special_chars + r"$", word) is None:
+                                if re.match(r"[\wäöü]+$", word) is None and re.match(api_state.re_lang_special_chars + r"+$", word) is None:
                                     j = 0
                                     while j < len(word):
                                         toappend = word[j]
@@ -679,6 +681,8 @@ def compute_usage():
                                 word = word.lower()
                                 if re.match(r'\w+$', word, re.UNICODE):
                                     entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word)
+                                elif word in api_state.textemojis:
+                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
                                 elif re.match(api_state.re_lang_special_chars, word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
                                 elif len(word) <= 2 and isemoji(word):
