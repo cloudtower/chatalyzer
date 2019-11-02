@@ -768,7 +768,6 @@ def isemoji(ch):
     return (i in range(0x1f600, 0x1f650) # Emojis
         or i in range(0x1f680, 0x1f700) # Transport and Map Symbols
         or i in range(0x1f300, 0x1f600) # Miscellaneous Symbols and Pictographs
-        or i in range(0x2000, 0x2070) # General Punctuation
         or i == 0x20e3 # Combining Enclosing Keycap
         or i in range(0x30, 0x40) # Numbers (for enclosed combinations)
         or i in range(0x2190, 0x2200) # Arrows
