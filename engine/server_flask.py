@@ -63,7 +63,7 @@ class APIState():
                     save = False
                 if save:
                     stopwords.append(line.strip("\n"))
-                if re.match(r"\[(\w+)\]", line) is not None:
+                if re.match(r"\[(\w+)\]", line):
                     if re.match(r"\[(\w+)\]$", line).group(1) == lang:
                         save = True
         except IOError:
@@ -130,10 +130,7 @@ class APIState():
 
 @server.route("/api/getloadedfile")
 def get_loaded_file():
-    if api_state.table_prefix is None:
-        return "-"
-
-    return api_state.table_prefix
+    return api_state.table_prefix if api_state.table_prefix else "-"
 
 
 @server.route("/api/getnames")
@@ -374,16 +371,14 @@ def db_request(sql, group_by, params, setand=False, sql_postfix=""):
     db_conn, db_cursor = getdbconnection()
 
     person_filter = request.args.get("namefilter")
-    if person_filter is not None:
+    if person_filter:
         person_filter = HTMLParser().unescape(person_filter)
-
-    if person_filter is not None and person_filter is not "":
         setand, sql = sql_and(setand, sql)
         sql += " name=?"
         params += [person_filter]
 
     time_filter = request.args.get("timefilter")
-    if time_filter is not None:
+    if time_filter:
         split = time_filter.split("t")
         try:
             date_start = datetime.datetime.strptime(split[0], "%Y-%m-%d")
@@ -394,13 +389,13 @@ def db_request(sql, group_by, params, setand=False, sql_postfix=""):
             print("[!] Not a valid date!")
 
     weekday_filter = request.args.get("weekdayfilter")
-    if weekday_filter is not None:
+    if weekday_filter:
         setand, sql = sql_and(setand, sql)
         sql += " weekday=?"
         params += [weekday_filter]
 
     daytime_filter = request.args.get("daytimefilter")
-    if daytime_filter is not None:
+    if daytime_filter:
         setand, sql = sql_and(setand, sql)
         sql += " hour=?"
         params += [daytime_filter]
@@ -713,7 +708,7 @@ def compute_usage():
 def get_settings():
     key = param_to_string(request.args.get("key"), None)
 
-    if key is None:
+    if not key:
         return json.dumps(api_state.settings_global)
     else:
         try:
@@ -746,7 +741,7 @@ def set_setting():
 def get_loadfile():
     filename = request.args.get("filename")
 
-    if filename == None:
+    if not filename:
         return "No file specified."
 
     return api_state.loadfile(filename)
