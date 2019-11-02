@@ -535,7 +535,7 @@ def ubc_db_request():
     sort = param_to_int(request.args.get("sortby"))
     stop = param_to_bool(request.args.get("stop"))
     asc = param_to_bool(request.args.get("asc"))
-    chartype = request.args.get("type")
+    chartype = param_to_string(request.args.get("type"))
     return_order = ["word", "usage"]
 
     db_output = db_request("SELECT word, SUM(is{}) as usage FROM '{}' WHERE is{}=1".format(chartype, api_state.table_prefix + '-ubw', chartype), "word", [], True, " ORDER BY {} {} LIMIT {} OFFSET {}".format(return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
@@ -833,10 +833,10 @@ def param_to_int(param, default=0):
         return default
 
 def param_to_string(param, default=""):
-    if param == None:
+    if not param:
         return default
     else:
-        return param
+        return re.sub(r"\W", "", param)
 
 api_state = APIState()
 
