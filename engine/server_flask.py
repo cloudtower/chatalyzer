@@ -287,6 +287,8 @@ def get_activity_by_time():
                 aggr_date = el2[0]
                 aggr_count = 1
 
+        aggr_list.append((aggr_date, ((float(aggr_sum) / float(aggr_count)) if doavg else aggr_sum)))
+
         output.append((el[0], aggr_list))
 
 
