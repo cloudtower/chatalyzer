@@ -278,6 +278,7 @@ def get_activity_by_time():
 
         for el2 in el[1]:
             delta = ((datetime.datetime.strptime(el2[0], api_state.db_datetime)) - (datetime.datetime.strptime(aggr_date, api_state.db_datetime))).days
+            
             if delta < aggr:
                 aggr_count += 1
                 aggr_sum += el2[1]
@@ -452,6 +453,7 @@ def compute_activity():
                 has_name = re.match(api_state.re_lang_filter_log_syntax, line) is None
                 is_media = re.search(api_state.re_lang_filter_media, line) is not None
                 is_message = has_date
+                is_cont = False
 
                 if has_date:
                     time = line.split(" - ")[0]
@@ -474,6 +476,7 @@ def compute_activity():
                         if is_media:
                             entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
                     else:
+                        is_cont = True
                         linerest = line
 
                     if not is_media:
@@ -514,7 +517,10 @@ def compute_activity():
 
                         entry = (name_last, day_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
 
-                    entries.append(entry)
+                    if is_cont:
+                        entries[-1] = entry[:7] + (entries[-1][7] + entry[7], entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10])
+                    else:
+                        entries.append(entry)
             except Exception as e:
                 print("[!] Caught exception during activity computation: " + str(e))
 
