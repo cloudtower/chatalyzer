@@ -444,9 +444,9 @@ function add_select(parent_div, options, labels, label, id_additional = "", prep
 
 function add_time_select(parent_div, callback, id_additional = "", prepend = false) {
     var timefilterdiv = document.createElement("div");
-    timefilterdiv.setAttribute("class", "btn secondary_control");
-    timefilterdiv.setAttribute("style", "width: 230px; height: 34px; margin-right: 4px");
-    timefilterdiv.innerHTML = "<i style=\"font-size: 16px; padding-right: 10px\" class=\"fa\">&#xf073;</i><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 80%; border: none; padding: 0; vertical-align: top\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:6px\">"
+    timefilterdiv.setAttribute("class", "buttonlike secondary_control");
+    timefilterdiv.setAttribute("style", "width: 300px; height: 34px; margin-right: 4px");
+    timefilterdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Filter by time</span><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 180px; border: none; padding: 7; vertical-align: top; border-radius: 4px\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:4px; margin-top: 10px\">"
     if (prepend) {
         parent_div.insertBefore(timefilterdiv, parent_div.firstChild);
     } else {
