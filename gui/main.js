@@ -131,95 +131,88 @@ function statsbyword() {
     var data_div = document.getElementById("main_data");
     var searchdiv = document.createElement("div");
     var head_div = document.createElement("div");
+    head_div.setAttribute("style", "display: inline-flex");
     searchdiv.setAttribute("class", "buttonlike");
     searchdiv.setAttribute("style","width: 400px")
     searchdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px; width: 200px;\">Search for word:</span>";
+
     var search_input = document.createElement("input");
     search_input.setAttribute("type", "text");
     search_input.setAttribute("class", "form-input");
     search_input.setAttribute("style", "text-align: left; width: 100%");
     searchdiv.appendChild(search_input);
-    var totalusage_div = document.createElement("div");
-    totalusage_div.setAttribute("class","table-wrap buttonlike");
-    totalusage_div.setAttribute("style","width: 400px; display: block; margin-bottom: 15px")
-    var totaluasge_output = document.createElement("table");
-    totaluasge_output.setAttribute("class","table-all table table-striped table-fixed");
-    totaluasge_output.innerHTML = "<thead><tr><th style=\"width: 15%\"></th><th style=\"width: 60%\">Word</th><th style=\"width: 25%\">Usage</th></tr></thead><tbody style=\"height:120px;\"></tbody>";
-    totaluasge_output.entries = [];
-    totaluasge_output.make_emoji = 0;
-    totaluasge_output.row_widths = ["60"]
-    totalusage_div.appendChild(totaluasge_output);
-    head_div.appendChild(searchdiv);
-    head_div.appendChild(totalusage_div);
-    data_div.appendChild(head_div);
-    bydt_div = createchart("ubw");
-    bydt_div.setAttribute("class", "multichart");
-    chart_bydt = bydt_div.chart;
-    bywd_div = createchart("ubw");
-    bywd_div.setAttribute("class", "multichart");
-    chart_bywd = bywd_div.chart;
-    byt_div = createchart("ubw");
-    byt_div.setAttribute("class", "multichart");
-    chart_byt = byt_div.chart;
-    chart_byt.options.scales.xAxes = [{ type: "time" }];
-    byn_div = createchart("ubw");
-    //byn_div.setAttribute("class","multichart");
-    chart_byn = byn_div.chart;
 
-    bydt_name_select = add_name_filter(bydt_div, "_name_dt", true);
-    bywd_name_select = add_name_filter(bywd_div, "_name_wd", true);
-    byt_name_select = add_name_filter(byt_div, "_name_t", true);
+    var totalusage_div = document.createElement("div");
+    totalusage_div.entries = [];
+    totalusage_div.setAttribute("style", "height: 40px; padding-top: 7px;")
+    var mode_selection_div = document.createElement("div");
+    mode_selection_div.setAttribute("style", "width: 200px");
+    var mode_selection = add_select(mode_selection_div, ["bydaytime", "byweekday", "bytime", "byname"], ["by daytime", "by weekday", "over time", "by name"], "Mode", id_additional="", prepend=false, empty_option=false);
+
+    head_div.appendChild(searchdiv);
+    head_div.appendChild(mode_selection_div);
+    data_div.appendChild(head_div);
+    data_div.appendChild(totalusage_div);
+
+    chart_div = createchart("ubw");
+    chart_div.setAttribute("class", "multichart");
+    sbw_chart = chart_div.chart;
+
+    name_select = add_name_filter(chart_div, "_name", true);
 
     weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
     weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satursday", "Sunday"];
-    bydt_weekday_select = add_select(bydt_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_dt", true);
-    byn_weekday_select = add_select(byn_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_n", true);
-    byt_weekday_select = add_select(byt_div, weekday_options, weekday_labels, "Filter by weekday", "_wd_t", true);
+    weekday_select = add_select(chart_div, weekday_options, weekday_labels, "Filter by weekday", "_weekday", true);
 
     daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
-    bywd_daytime_select = add_select(bywd_div, daytime_options, daytime_options, "Filter by daytime", "_dt_wd", true);
-    byn_daytime_select = add_select(byn_div, daytime_options, daytime_options, "Filter by daytime", "_dt_n", true);
-    byt_daytime_select = add_select(byt_div, daytime_options, daytime_options, "Filter by daytime", "_dt_t", true);
+    daytime_select = add_select(chart_div, daytime_options, daytime_options, "Filter by daytime", "_daytime", true);
 
     update_fun = (() => {
-        bydt_url = append_select_to_url("namefilter", bydt_name_select) + append_select_to_url("weekdayfilter", bydt_weekday_select, true);
-        bywd_url = append_select_to_url("namefilter", bywd_name_select) + append_select_to_url("daytimefilter", bywd_daytime_select);
-        byt_url = append_select_to_url("namefilter", byt_name_select) + append_select_to_url("daytimefilter", byt_daytime_select) + append_select_to_url("weekdayfilter", byt_weekday_select, true);
-        byn_url = append_select_to_url("weekdayfilter", byn_weekday_select, true) + append_select_to_url("daytimefilter", byn_daytime_select);
-        if (document.getElementById("timefilter_check_dt").checked) {
-            bydt_url += "&timefilter=" + $('#timefilter_dt').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_dt').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        var mode = mode_selection.options[mode_selection.selectedIndex].value;
+        url = append_select_to_url("namefilter", name_select) + append_select_to_url("daytimefilter", daytime_select) + append_select_to_url("weekdayfilter", weekday_select, true);
+        if (mode == "bytime") {
+            sbw_chart.options.scales.xAxes = [{ type: "time" }];
+        } else {
+            sbw_chart.options.scales.xAxes = [{ type: "category" }];
         }
-        if (document.getElementById("timefilter_check_wd").checked) {
-            bywd_url += "&timefilter=" + $('#timefilter_wd').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_wd').data("daterangepicker").endDate.format("YYYY-MM-DD");
+        if (document.getElementById("timefilter_check").checked) {
+            url += "&timefilter=" + $('#timefilter').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter').data("daterangepicker").endDate.format("YYYY-MM-DD");
         }
-        if (document.getElementById("timefilter_check_t").checked) {
-            byt_url += "&timefilter=" + $('#timefilter_t').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_t').data("daterangepicker").endDate.format("YYYY-MM-DD");
-        }
-        if (document.getElementById("timefilter_check_n").checked) {
-            byn_url += "&timefilter=" + $('#timefilter_n').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter_n').data("daterangepicker").endDate.format("YYYY-MM-DD");
-        }
-        word = JSON.stringify(totaluasge_output.entries);
-        makeapicall("ubw?mode=total&words=" + word, ((message) => { updatetable(totaluasge_output.querySelector("tbody"), message, minimal=true, deletable=true) }));
-        chart_bydt.filter_url = "?mode=bydaytime&words=" + word + bydt_url;
-        chart_bywd.filter_url = "?mode=byweekday&words=" + word + bywd_url;
-        chart_byt.filter_url = "?mode=bytime&words=" + word + byt_url;
-        chart_byn.filter_url = "?mode=byname&words=" + word + byn_url;
-        chart_bydt.refresh();
-        chart_bywd.refresh();
-        chart_byt.refresh();
-        chart_byn.refresh();
+
+        word = JSON.stringify(totalusage_div.entries);
+        makeapicall("ubw?mode=total&words=" + word, ((message) => { update_labellist(totalusage_div, message); }));
+        sbw_chart.filter_url = "?mode=" + mode + "&words=" + word + url;
+        sbw_chart.refresh();
     });
 
-    totaluasge_output.update_fun = update_fun;
+    totalusage_div.update_fun = update_fun;
 
-    bydt_time_select = add_time_select(bydt_div, update_fun, "_dt", true);
-    bywd_time_select = add_time_select(bywd_div, update_fun, "_wd", true);
-    byt_time_select = add_time_select(byt_div, update_fun, "_t", true);
-    byn_time_select = add_time_select(byn_div, update_fun, "_n", true);
+    time_select = add_time_select(chart_div, update_fun, "", true);
 
-    search_input.addEventListener("change", (() => {newentry = String(encodeURI(emojione.shortnameToUnicode(search_input.value.toLowerCase()))); totaluasge_output.entries.push(newentry); search_input.value = ""; }))
+    search_input.addEventListener("change", (() => {newentry = String(encodeURI(emojione.shortnameToUnicode(search_input.value.toLowerCase()))); totalusage_div.entries.push(newentry); search_input.value = ""; }))
     data_div.querySelectorAll("select").forEach((select) => select.addEventListener("change", update_fun));
     data_div.querySelectorAll("input").forEach((select) => select.addEventListener("change", update_fun));
+}
+
+function update_labellist(parentdiv, message) {
+    parentdiv.innerHTML = "";
+    data = JSON.parse(message);
+    for (i = 0; i < data.length; i++) {
+        var newspan = document.createElement("div");
+        newspan.setAttribute("style", "vertical-align: middle; padding: 1px; padding-left: 8px; padding-right: 8px; background-color: #eeeeee");
+        newspan.setAttribute("class", "buttonlike");
+        newspan.innerHTML = data[i][0] + " " + (data[i][1] == null ? "0" : data[i][1]);
+
+        var delbtn = document.createElement("span");
+        delbtn.innerHTML = "⨯";
+        delbtn.setAttribute("style", "padding-left: 3px");
+        delbtn.addEventListener("click", function (i) { return function () {
+            parentdiv.entries.splice(i, 1);
+            parentdiv.update_fun();
+        }}(i));
+        newspan.appendChild(delbtn);
+        parentdiv.appendChild(newspan);
+    }
 }
 
 function updatetable(tbody, message, minimal=false, deletable=false) {
