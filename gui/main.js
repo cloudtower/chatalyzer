@@ -31,9 +31,9 @@ function pickfile() {
             getloadedfile();
         }
     };
-    dialog.showOpenDialog({ properties: ['openFile'] }, function (file) {
+    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
         if (file != undefined) {
-            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file)), true);
+            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file.filePaths[0])), true);
             xhttp.send();
         }
     });
