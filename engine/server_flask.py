@@ -341,6 +341,8 @@ def activity_filter(db_output, timemode=False):
         output.append(("All per Message", output_split((1, ), db_output, timemode, "a/", sum_all)))
     if request.args.get("getcpa") == "true":
         output.append(("Characters per All", output_split((5, ), db_output, timemode, "/a", sum_all)))
+    if request.args.get("getcpw") == "true":
+        output.append(("Characters per Word", output_split((5, 4), db_output, timemode, "/")))
 
     return output
 
