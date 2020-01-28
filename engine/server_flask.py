@@ -518,7 +518,7 @@ def compute_activity():
                         entry = (name_last, day_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
 
                     if is_cont:
-                        entries[-1] = entry[:7] + (entries[-1][7] + entry[7], entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10])
+                        entries[-1] = entries[-1][:7] + (entries[-1][7] + entry[7], entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10])
                     else:
                         entries.append(entry)
             except Exception as e:
