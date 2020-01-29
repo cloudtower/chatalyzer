@@ -643,7 +643,9 @@ def compute_usage():
                         inter_punct = []
                         inter_emoji = []
                         filtered = []
+
                         hyperlinks = []
+                        textemojis = []
 
                         # handle hyperlinks
                         for word in linesplit:
@@ -653,11 +655,15 @@ def compute_usage():
                                 inter_punct.append(word[:hyperlink.span(0)[0]])
                                 inter_punct.append(word[hyperlink.span(0)[1]:])
                             else:
-                                for part in re.split(r"([^\wäöü]+)", word):
-                                    inter_punct.append(part)
+                                for part in re.split(r"(" + api_state.re_textemojis + r")", word):
+                                    if part in api_state.textemojis:
+                                        textemojis.append(part)
+                                    else:
+                                        for subpart in re.split(r"([^\wäöü]+)", part):
+                                            inter_punct.append(subpart)
 
                         for word in inter_punct:
-                            for part in re.split(r"(" + api_state.re_textemojis + r"|" + api_state.re_lang_special_chars + r")", word):
+                            for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
                                 inter_emoji.append(part)
 
                         for i, word in enumerate(inter_emoji):
@@ -688,11 +694,8 @@ def compute_usage():
 
                         for word in filtered:
                             if word != "\n" and word != "":
-                                word = word.lower()
                                 if re.match(r'\w+$', word, re.UNICODE):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word)
-                                elif word in api_state.textemojis:
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
+                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word.lower())
                                 elif re.match(api_state.re_lang_special_chars, word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
                                 elif len(word) <= 2 and isemoji(word):
@@ -704,6 +707,8 @@ def compute_usage():
 
                         for word in hyperlinks:
                             entries.append((name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, 0, word))
+                        for word in textemojis:
+                            entries.append((name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word))
 
             except Exception as e:
                 print("[!] Caught exception scanning ubw: " + str(e))
