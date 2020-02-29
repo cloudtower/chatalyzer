@@ -488,11 +488,15 @@ def compute_activity():
                         filtered = []
 
                         for word in linesplit:
-                            for part in re.split(r"([^\wäöü]+)", word):
-                                inter_punct.append(part)
+                            hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
+                            if hyperlink is not None:
+                                filtered.append(hyperlink.group(0))
+                            else:
+                                for part in re.split(r"([^\wäöü]+)", word):
+                                    inter_punct.append(part)
 
                         for word in inter_punct:
-                            for part in re.split(r"("+api_state.re_lang_special_chars+r")", word):
+                            for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
                                 inter_emoji.append(part)
 
                         for word in inter_emoji:
