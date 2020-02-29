@@ -74,9 +74,17 @@ function loadnewfile() {
     } else {
         makeapicall("loadnewfile?filename=" + String(encodeURIComponent(newfile_name)), function (message) {
             data = JSON.parse(message);
-            document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
-            getavailfiles(doloadfile = false, select_override = data[2]);
-            loadfile(data[2], silent = true);
+            if (data[0] == 0) {
+                document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
+                getavailfiles(doloadfile = false, select_override = data[2]);
+                loadfile(data[2], silent = true);
+            } else if (data[0] == 1) {
+                swal(data[1]);
+                resetNewChatDialog();
+            } else if (data[0] == 2) {
+                swal("Chat format check failed. Please check if you selected the correct language.")
+                resetNewChatDialog();
+            }
         })
     }
 }

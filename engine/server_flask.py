@@ -123,7 +123,8 @@ class APIState():
             print("[!] File {} not found!".format(filename))
             return (1, "File not found.", "")
 
-        # insert sanity check here
+        if chat_check(filename) > 0:
+            return (2, "Chat check failed.", "")
 
         self.fp = filename
         self.table_prefix = table_prefix_new
@@ -152,6 +153,14 @@ def get_names():
 def find_names():
     _, db_cursor = getdbconnection()
     return list(db_cursor.execute("SELECT DISTINCT name FROM '{}' ORDER BY name".format(api_state.table_prefix + '-act')))
+
+
+def chat_check(filename):
+    with open(filename, encoding="utf-8") as f:
+        for line in f:
+            if re.match(api_state.re_lang_filter_syntax, line) is not None:
+                return 0
+    return 1
 
 @server.route("/api/actraw")
 def get_activity_raw():
