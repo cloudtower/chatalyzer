@@ -39,18 +39,13 @@ class APIState():
     def __init__(self):
         self.table_prefix = None
         self.fp = None
+        db_curs, db_conn = getdbconnection()
+
+        if not len(list(db_curs.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chats'"))):
+            db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer, avg_response_time integer)")
 
         self.setlang()
         self.parse_config_file()
-
-    def resetcachedbits(self):
-        db_conn = sqlite3.connect("chats.db")
-        db_cursor = db_conn.cursor()
-
-        self.act_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((self.table_prefix + "-act"), )))) > 0)
-        self.act_wait = False
-        self.ubc_cached = (len(list(db_cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", ((self.table_prefix + "-ubw"), )))) > 0)
-        self.ubc_wait = False
 
     def loadstopwords(self, lang="en"):
         self.stopwords = []
@@ -114,20 +109,34 @@ class APIState():
             except IndexError:
                 self.setlang()
 
-    def loadfile(self, filename):
+    def loadfile(self, prefix):
+        self.table_prefix = prefix
+        return "Successfully loaded file."
+
+    def loadnewfile(self, filename):
         print("[i] " + filename)
-        self.table_prefix = re.split(r"[\/\\]", filename)[-1].split(".")[0]
-        self.table_prefix = re.sub(r"\W", "_", self.table_prefix)
-        print("[i] New table prefix: " + self.table_prefix)
+        table_prefix_new = re.split(r"[\/\\]", filename)[-1].split(".")[0]
+        table_prefix_new = re.sub(r"\W", "_", table_prefix_new)
+        print("[i] New table prefix: " + table_prefix_new)
 
         if not os.path.isfile(filename):
             print("[!] File {} not found!".format(filename))
-            self.table_prefix = None
-            return "File not found."
+            return (1, "File not found.", "")
+
+        # insert sanity check here
 
         self.fp = filename
-        self.resetcachedbits()
-        return "Successfully loaded file."
+        self.table_prefix = table_prefix_new
+
+        compute_activity()
+        compute_usage()
+
+        db_conn, db_curs = getdbconnection()
+
+        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?, ?)", (table_prefix_new, "?", "?", 0, 0, 0))
+        db_conn.commit()
+
+        return (0, "Successfully loaded file.", table_prefix_new)
 
 
 @server.route("/api/getloadedfile")
@@ -137,14 +146,6 @@ def get_loaded_file():
 
 @server.route("/api/getnames")
 def get_names():
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        print("[+] No Cache for act. Computing...")
-        compute_activity()
-
     return json.dumps(find_names())
 
 
@@ -154,13 +155,6 @@ def find_names():
 
 @server.route("/api/actraw")
 def get_activity_raw():
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     pagesize = param_to_int(request.args.get("pagesize"), 50)
     pagenumber = param_to_int(request.args.get("pagenumber"))
     asc = param_to_bool(request.args.get("asc"))
@@ -192,13 +186,6 @@ def get_activity_raw():
 def get_activity_by_name():
     db_conn, db_cursor = getdbconnection()
 
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     asc = param_to_bool(request.args.get("asc"))
     sort = param_to_int(request.args.get("sortby"))
     chartype_filter = param_to_string(request.args.get("chartype"), "none")
@@ -218,13 +205,6 @@ def get_activity_by_name():
 
 @server.route("/api/abw")
 def get_activity_by_weekday():
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
     db_output = activity_db_request("weekday")
@@ -236,13 +216,6 @@ def get_activity_by_weekday():
 
 @server.route("/api/abdt")
 def get_activity_by_daytime():
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     labels = [str(i) + ":00" for i in range(0, 24)]
 
     db_output = activity_db_request("hour")
@@ -254,13 +227,6 @@ def get_activity_by_daytime():
 
 @server.route("/api/abt")
 def get_activity_by_time():
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     db_output = activity_db_request("date")
 
     aggr = param_to_int(request.args.get("aggregate"), 7)
@@ -364,13 +330,6 @@ def activity_db_request(group_by):
 
 
 def db_request(sql, group_by, params, setand=False, sql_postfix=""):
-    while api_state.act_wait:
-        sleep(0.1)
-
-    if not api_state.act_cached:
-        api_state.act_wait = True
-        compute_activity()
-
     def sql_and(setand, sql):
         sql += " AND" if setand else " WHERE"
         return True, sql
@@ -432,6 +391,7 @@ def activity_db_pad(labels, output, dontsort=False):
 
 
 def compute_activity():
+    print("[i] Computing activity...")
     db_conn, db_cursor = getdbconnection()
 
     db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
@@ -535,14 +495,9 @@ def compute_activity():
             if name in element[0]:
                 entries.append((name, ) + element[1:])
 
-    print("[-] Almost done, committing")
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
-    print("[-] Done")
-
-    api_state.act_cached = True
-    api_state.act_wait = False
 
 
 def ubc_db_request():
@@ -565,14 +520,6 @@ def ubc_db_request():
 
 @server.route("/api/ubc")
 def get_usage_by_character():
-    while api_state.ubc_wait:
-        sleep(0.1)
-
-    if api_state.ubc_cached == False:
-        api_state.ubc_wait = True
-        print("[+] No Cache for ubc. Computing...")
-        compute_usage()
-
     db_output = ubc_db_request()
 
     return json.dumps(db_output)
@@ -585,14 +532,6 @@ def ubw_db_request(word, group_by):
 @server.route("/api/ubw")
 def get_usage_by_word():
     db_conn, db_cursor = getdbconnection()
-
-    while api_state.ubc_wait:
-        sleep(0.1)
-
-    if api_state.ubc_cached == False:
-        api_state.ubc_wait = True
-        print("[+] No Cache for ubc. Computing...")
-        compute_usage()
 
     words = json.loads(request.args.get("words"))
     mode = param_to_string(request.args.get("mode"))
@@ -612,6 +551,7 @@ def get_usage_by_word():
 
 
 def compute_usage():
+    print("[i] Computing usage...")
     db_conn, db_cursor = getdbconnection()
 
     db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
@@ -717,14 +657,9 @@ def compute_usage():
             except Exception as e:
                 print("[!] Caught exception scanning ubw: " + str(e))
 
-    print("[-] Almost done, committing")
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-ubw"), entries)
     db_conn.commit()
     db_conn.close()
-    print("[-] Done")
-
-    api_state.ubc_cached = True
-    api_state.ubc_wait = False
 
 
 @server.route("/api/getoptions")
@@ -759,16 +694,31 @@ def set_setting():
         print(e)
         return "Error: IOError"
 
-
-@server.route("/api/loadfile")
-def get_loadfile():
+# load and analyze a new file
+@server.route("/api/loadnewfile")
+def get_loadnewfile():
     filename = request.args.get("filename")
 
     if not filename:
-        return "No file specified."
+        return json.dumps((1, "No file specified.", ""))
 
-    return api_state.loadfile(filename)
+    return json.dumps(api_state.loadnewfile(filename))
 
+# return list of available, analyzed files
+@server.route("/api/getavailfiles")
+def get_availfiles():
+    db_conn, db_curs = getdbconnection()
+    return json.dumps([el[0] for el in list(db_curs.execute("SELECT prefix from chats"))])
+
+# switch between existing files
+@server.route("/api/loadfile")
+def get_loadfile():
+    prefix = request.args.get("prefix")
+
+    if not prefix:
+        return "No prefix specified."
+
+    return api_state.loadfile(prefix)
 
 @server.route("/api/getlang")
 def getlang():

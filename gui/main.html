@@ -17,7 +17,7 @@
     <script>
         var dialog = require('electron').remote.dialog;
         var api_url = "http://127.0.0.1:5000/api/";
-        getloadedfile();
+        getavailfiles();
         getlangoptions();
     </script>
     <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
@@ -28,9 +28,25 @@
 </head>
 
 <body>
+    <div id="sidenav_main" class="sidenav">
+        <a class="closebtn" onclick="toggleSidebar(false)">&times;</a>
+        <a href="options.html"><i class="fas fa-cogs" style="font-size: 20px"></i> Settings</a>
+        <a onclick="toggleNewChatDialog(true)"><i class="fas fa-user-plus" style="font-size: 20px"></i> Add new Chat</a>
+    </div>
+    <div id="newchat_dialog" class="dialog">
+        <a class="closebtn" onclick="toggleNewChatDialog(false)">&times;</a>
+        <div id="newchat_dialog_main">
+            <button class="btn" onclick="pickfile()">Pick File</button>
+            <div class="buttonlike">
+                <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
+                <select class="form-control" id="langmain" onchange="switchlang()"></select>
+            </div>
+            <div id="loadnewfile_submit_wrap" style="display: inline-block"><button class="btn" onclick="loadnewfile()">Submit</button></div>
+        </div>
+    </div>
     <div id="controls">
         <div style="margin: 5px" id="primary_controls">
-            <button id="btn_options" class="btn" onclick="window.location='options.html'"><i class="fas fa-cogs" style="font-size: 20px"></i></button>
+            <button id="btn_options" class="btn" onclick="toggleSidebar(true)"><i class="fas fa-bars" style="font-size: 20px"></i></button>
             <button id="btn_abn" class="btn mode_btn" onclick="activitybyname()">Activity by Name</button>
             <button id="btn_abw" class="btn mode_btn" onclick="activitybyweekday()">Activity by Weekday</button>
             <button id="btn_abdt" class="btn mode_btn" onclick="activitybydaytime()">Activity by Daytime</button>
@@ -38,13 +54,7 @@
             <button id="btn_ar" class="btn mode_btn" onclick="activityraw()">Activity raw Data</button>
             <button id="btn_ubw" class="btn mode_btn" onclick="usagebyword()">Usage by Word</button>
             <button id="btn_sbw" class="btn mode_btn" onclick="statsbyword()">Stats by Word</button>
-            <div class="buttonlike">
-                <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
-                <select class="form-control" id="langmain" onchange="switchlang()">
-                </select>
-            </div>
-            <button class="btn" onclick="pickfile()">Pick File</button>
-            <div class="btn" style="background-color: #ffffff">Loaded File: <span id="current_file_display"></span></div>
+            <div id="current_file_div" style="display: inline-block">Loaded File: <span id="current_file_display"></span></div>
         </div>
     </div>
     <div id="main_data"></div>

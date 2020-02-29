@@ -1,11 +1,46 @@
-function getloadedfile() {
-    makeapicall("getloadedfile", function (message) {
-        if (message == "-") {
-            document.getElementById("primary_controls").querySelectorAll("button.mode_btn").forEach((button) => {button.setAttribute("disabled", true);})
+function toggleSidebar(open) {
+    if (open) {
+        document.getElementById("sidenav_main").style.width = "300px";
+    } else {
+        document.getElementById("sidenav_main").style.width = "0px";
+    }
+}
+
+function toggleNewChatDialog(open) {
+    if (open) {
+        document.getElementById("newchat_dialog").style.display = "block";
+        toggleSidebar(false);
+    } else {
+        document.getElementById("newchat_dialog").style.display = "none";
+        resetNewChatDialog();
+    }
+}
+
+function resetNewChatDialog() {
+    document.getElementById("loadnewfile_submit_wrap").innerHTML = "<button class=\"btn\" onclick=\"loadnewfile()\">Submit</button>";
+    document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "");
+}
+
+function getavailfiles(doloadfile = true, select_override = null) {
+    makeapicall("getavailfiles", function (message) {
+        var data = JSON.parse(message);
+        var file_display_div = document.getElementById("current_file_div");
+        if (data.length == 0) {
+            file_display_div.innerHTML = "<button class=\"btn\" style=\"background-color: #ffffff\" onclick=\"toggleNewChatDialog(true)\">Load new Chat</button>"
         } else {
-            document.getElementById("primary_controls").querySelectorAll("button.mode_btn").forEach((button) => {button.removeAttribute("disabled");})
+            file_display_div.innerHTML = "";
+            var sel = add_select(file_display_div, data, data, "Chat", id_additional = "", prepend = "", empty_option = false);
+            sel.setAttribute("id", "chat_sel");
+            if (doloadfile) {
+                loadfile(sel.options[sel.selectedIndex].value, silent = true);
+            }
+            if (select_override) {
+                sel.selectedIndex = data.indexOf(select_override);
+            }
+            sel.addEventListener("change", function () {
+                loadfile(sel.options[sel.selectedIndex].value, silent = true);
+            })
         }
-        document.getElementById("current_file_display").innerHTML = message;
     })
 }
 
@@ -23,24 +58,34 @@ function getlangoptions() {
     })
 }
 
-function pickfile() {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function () {
-        if (this.readyState == 4 && this.status == 200) {
-            pickfile_handle(this.responseText);
-            getloadedfile();
-        }
-    };
-    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
-        if (file != undefined) {
-            xhttp.open("GET", "http://127.0.0.1:5000/api/loadfile?filename=" + String(encodeURIComponent(file.filePaths[0])), true);
-            xhttp.send();
-        }
-    });
+function loadfile(prefix, silent = false) {
+    makeapicall("loadfile?prefix=" + prefix, function (message) {
+        if (!silent) swal(message)
+    })
+    changemode(null, none = true);
 }
 
-function pickfile_handle(message) {
-    swal(message);
+function loadnewfile() {
+    document.getElementById("loadnewfile_submit_wrap").innerHTML = "<div class=\"loader\"></div>";
+    document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "btn");
+    if (typeof newfile_name == "undefined" || newfile_name == undefined) {
+        swal("No file selected!");
+        resetNewChatDialog();
+    } else {
+        makeapicall("loadnewfile?filename=" + String(encodeURIComponent(newfile_name)), function (message) {
+            data = JSON.parse(message);
+            document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
+            getavailfiles(doloadfile = false, select_override = data[2]);
+            loadfile(data[2], silent = true);
+        })
+    }
+}
+
+function pickfile() {
+    resetNewChatDialog();
+    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
+        newfile_name = file != undefined ? file.filePaths[0] : undefined;
+    });
 }
 
 function activitybyname() {
@@ -658,10 +703,12 @@ function createchart(url, type = 'bar') {
     return wrapper_div;
 }
 
-function changemode(button) {
+function changemode(button, none = false) {
     document.getElementById("main_data").innerHTML = "";
     document.getElementById("primary_controls").querySelectorAll("button").forEach((button) => {button.setAttribute("style", "background-color: buttonface");})
-    button.setAttribute("style", "background-color: #ccccff");
+    if (!none) {
+        button.setAttribute("style", "background-color: #ccccff");
+    }
     destroyallothers();
 }
 

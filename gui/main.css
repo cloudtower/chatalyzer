@@ -72,3 +72,71 @@ td {
 .multichart {
     margin-bottom: 50px;
 }
+
+.sidenav {
+    height: 100%;
+    width: 0;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    padding-top: 60px;
+}
+
+.sidenav a, .dialog a {
+    padding: 8px 8px 8px 32px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: block;
+    overflow: hidden;
+}
+
+.sidenav a:hover {
+    color: #f1f1f1;
+}
+
+.sidenav .closebtn, .dialog .closebtn {
+    position: absolute;
+    top: 0;
+    right: 25px;
+    font-size: 36px;
+    margin-left: 50px;
+}
+
+.dialog .closebtn {
+    right: 20px;
+    padding: 0;
+}
+
+.dialog {
+    height: 50px;
+    width: 320px;
+    z-index: 2;
+    position: absolute;
+    top: 45%;
+    left: 40%;
+    background-color: #555555;
+    display: none;
+}
+
+.dialog #newchat_dialog_main {
+    padding: 8px 8px 8px 8px;
+}
+
+.loader {
+    border: 3px solid #ffffff; /* Light grey */
+    border-top: 3px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 2s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
