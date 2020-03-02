@@ -1,3 +1,6 @@
+dialog = require('electron').remote.dialog;
+api_url = "http://127.0.0.1:5000/api/";
+
 function toggleSidebar(open) {
     if (open) {
         document.getElementById("sidenav_main").style.width = "300px";
