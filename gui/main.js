@@ -46,11 +46,11 @@ function getavailfiles(doloadfile = true, select_override = null) {
 
 function getlangoptions() {
     makeapicall("getoptions?key=default_lang", function (message) {
-        data = JSON.parse(message);
-        options = data["options"];
-        lang_select = document.getElementById("langmain");
+        var data = JSON.parse(message);
+        var options = data["options"];
+        var lang_select = document.getElementById("langmain");
         for (i = 0; i < options.length; i++) {
-            option = document.createElement("option")
+            var option = document.createElement("option")
             option.innerHTML = options[i];
             lang_select.appendChild(option);
         }
@@ -73,7 +73,7 @@ function loadnewfile() {
         resetNewChatDialog();
     } else {
         makeapicall("loadnewfile?filename=" + String(encodeURIComponent(newfile_name)), function (message) {
-            data = JSON.parse(message);
+            var data = JSON.parse(message);
             if (data[0] == 0) {
                 document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
                 getavailfiles(doloadfile = false, select_override = data[2]);
@@ -207,22 +207,22 @@ function statsbyword() {
     data_div.appendChild(head_div);
     data_div.appendChild(totalusage_div);
 
-    chart_div = createchart("ubw");
+    var chart_div = createchart("ubw");
     chart_div.setAttribute("class", "multichart");
-    sbw_chart = chart_div.chart;
+    var sbw_chart = chart_div.chart;
 
-    name_select = add_name_filter(chart_div, "_name", true);
+    var name_select = add_name_filter(chart_div, "_name", true);
 
-    weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
-    weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satursday", "Sunday"];
-    weekday_select = add_select(chart_div, weekday_options, weekday_labels, "Filter by weekday", "_weekday", true);
+    var weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
+    var weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satursday", "Sunday"];
+    var weekday_select = add_select(chart_div, weekday_options, weekday_labels, "Filter by weekday", "_weekday", true);
 
-    daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
-    daytime_select = add_select(chart_div, daytime_options, daytime_options, "Filter by daytime", "_daytime", true);
+    var daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+    var daytime_select = add_select(chart_div, daytime_options, daytime_options, "Filter by daytime", "_daytime", true);
 
     update_fun = (() => {
         var mode = mode_selection.options[mode_selection.selectedIndex].value;
-        url = append_select_to_url("namefilter", name_select) + append_select_to_url("daytimefilter", daytime_select) + append_select_to_url("weekdayfilter", weekday_select, true);
+        var url = append_select_to_url("namefilter", name_select) + append_select_to_url("daytimefilter", daytime_select) + append_select_to_url("weekdayfilter", weekday_select, true);
         if (mode == "bytime") {
             sbw_chart.options.scales.xAxes = [{ type: "time" }];
         } else {
@@ -240,7 +240,7 @@ function statsbyword() {
 
     totalusage_div.update_fun = update_fun;
 
-    time_select = add_time_select(chart_div, update_fun, "", true);
+    var time_select = add_time_select(chart_div, update_fun, "", true);
 
     search_input.addEventListener("change", (() => {newentry = String(encodeURI(emojione.shortnameToUnicode(search_input.value.toLowerCase()))); totalusage_div.entries.push(newentry); search_input.value = ""; }))
     data_div.querySelectorAll("select").forEach((select) => select.addEventListener("change", update_fun));
@@ -249,7 +249,7 @@ function statsbyword() {
 
 function update_labellist(parentdiv, message) {
     parentdiv.innerHTML = "";
-    data = JSON.parse(message);
+    var data = JSON.parse(message);
     for (i = 0; i < data.length; i++) {
         var newspan = document.createElement("div");
         newspan.setAttribute("style", "vertical-align: middle; padding: 1px; padding-left: 8px; padding-right: 8px; background-color: #eeeeee");
@@ -282,8 +282,8 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
         var row = tbody.insertRow(i);
         var offset = 0;
         if (deletable) {
-            btncell = row.insertCell(0);
-            delbtn = document.createElement("i");
+            var btncell = row.insertCell(0);
+            var delbtn = document.createElement("i");
             delbtn.setAttribute("class","fas fa-times-circle");
             btncell.setAttribute("style","vertical-align: middle; width: 15%")
             delbtn.addEventListener("click", function (i) { return function () {
@@ -291,15 +291,15 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
                 table.update_fun();
             }}(i));
             btncell.appendChild(delbtn);
-            offset = 1;
+            var offset = 1;
         }
         for (j = 0; j < content[i].length; j++) {
             if (minimal) { content[i][j] = content[i][j] == null ? 0 : content[i][j]}
             if (table.make_emoji >= 0 && j == table.make_emoji) {
-                new_cell = row.insertCell(j + offset);
+                var new_cell = row.insertCell(j + offset);
                 new_cell.innerHTML = emojione.toImage(String(content[i][j]));
             } else {
-                new_cell = row.insertCell(j + offset);
+                var new_cell = row.insertCell(j + offset);
                 new_cell.innerHTML = content[i][j];
                 if (table.make_emoji >= 0) {
                     new_cell.setAttribute("style","vertical-align: middle;");
@@ -382,7 +382,7 @@ function createtable(attributes_table, header, url, sort_by, data_div, row_width
     table.filter_url = "";
     table.make_emoji = make_emoji;
     table.row_widths = row_widths;
-    row_id = 0;
+    var row_id = 0;
     table.querySelectorAll("th").forEach(th => {
         if (row_id < row_widths.length) {
             th.style.width = row_widths[row_id] + "%";
@@ -453,7 +453,7 @@ function switchlang() {
 }
 
 function add_name_filter(parent_div, id_additional = "", prepend = false) {
-    select = add_select(parent_div, [], [], "Filter by name", id_additional, prepend);
+    var select = add_select(parent_div, [], [], "Filter by name", id_additional, prepend);
     callback = function (select) {
         return function (message) {
             var names = JSON.parse(message);
@@ -470,10 +470,10 @@ function add_name_filter(parent_div, id_additional = "", prepend = false) {
 }
 
 function add_select(parent_div, options, labels, label, id_additional = "", prepend = false, empty_option = true) {
-    name_select_div = document.createElement("div");
+    var name_select_div = document.createElement("div");
     name_select_div.setAttribute("class", "buttonlike");
     name_select_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\"> " + label + " </span>";
-    select = document.createElement("select");
+    var select = document.createElement("select");
     select.setAttribute("id", "name_sel" + id_additional);
     select.setAttribute("class", "form-control");
     select.setAttribute("style", "width: 200px");
@@ -573,7 +573,7 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
     }
 
     if (aggregation_input) {
-        aggr_input_div = document.createElement("div");
+        var aggr_input_div = document.createElement("div");
         aggr_input_div.setAttribute("class", "buttonlike");
         aggr_input_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Aggregate by days:</span>";
         aggr_input = document.createElement("input");
@@ -586,12 +586,12 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
     }
 
     if (filter_daytime) {
-        daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
+        var daytime_options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23"];
         daytime_select = add_select(checkbox_div, daytime_options, daytime_options, "Filter by daytime", "_dt");
     }
 
     if (filter_weekday) {
-        weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
+        var weekday_options = ["0", "1", "2", "3", "4", "5", "6"];
         weekday_labels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satursday", "Sunday"];
         weekday_select = add_select(checkbox_div, weekday_options, weekday_labels, "Filter by weekday", "_wd");
     }
@@ -609,7 +609,7 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
     }
 
     var checkbox_onclick = (() => {
-        url = url_additional;
+        var url = url_additional;
         if (filter_types) {
             params = ["getmessages", "getall", "getchars", "getwords", "getemojis", "getpunct", "getmedia", "getlogs", "getepmsg", "getppmsg", "getwpmsg", "getepa", "getppa", "getwpa", "getepc", "getppc", "getwpc", "getcpmsg", "getapmsg", "getcpa", "getcpw"];
             n = 0;
@@ -655,7 +655,7 @@ function updatechart(chart, data) {
     chart.data.datasets = [];
     var content = JSON.parse(data);
     var data_dicts = []
-    labels = content[0];
+    var labels = content[0];
     for (i = 0; i < content[1].length; i++) {
         data_dicts = []
         for (j = 0; j < content[1][i][1].length; j++) {
@@ -745,13 +745,13 @@ function createbtn(label, fun) {
 }
 
 function makeapicall(url, callback) {
-    xhttp = new XMLHttpRequest();
+    var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function () {
         if (this.readyState == 4 && this.status == 200) {
             callback(this.responseText);
         }
     };
-    url = url.replace("?","&").replace("&","?");
+    var url = url.replace("?","&").replace("&","?");
     xhttp.open("GET", api_url + url, true);
     xhttp.send();
 }
