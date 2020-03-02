@@ -19,6 +19,7 @@ function toggleNewChatDialog(open) {
 function resetNewChatDialog() {
     document.getElementById("loadnewfile_submit_wrap").innerHTML = "<button class=\"btn\" onclick=\"loadnewfile()\">Submit</button>";
     document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "");
+    newfile_name = undefined;
 }
 
 function getavailfiles(doloadfile = true, select_override = null) {
