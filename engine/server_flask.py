@@ -75,7 +75,7 @@ class APIState():
         elif lang == "de":
             self.re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
             self.re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
-            self.re_lang_filter_media = r"<Medien ausgeschlossen>"
+            self.re_lang_filter_media = r"<Medien ausgeschlossen>|<Medien weggelassen>"
             self.re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
             self.lang_datetime = "%d.%m.%y, %H:%M"
             self.lang_global = "de"
