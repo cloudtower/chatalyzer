@@ -42,7 +42,7 @@ class APIState():
         db_curs, db_conn = getdbconnection()
 
         if not len(list(db_curs.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chats'"))):
-            db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer, avg_response_time integer)")
+            db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer)")
 
         self.setlang()
         self.parse_config_file()
@@ -134,7 +134,12 @@ class APIState():
 
         db_conn, db_curs = getdbconnection()
 
-        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?, ?)", (table_prefix_new, "?", "?", 0, 0, 0))
+        act_total = list(db_curs.execute("SELECT COUNT(*) FROM '{}-act'".format(table_prefix_new)))[0][0]
+        start_date = list(db_curs.execute("SELECT date FROM '{}-act' LIMIT 1".format(table_prefix_new)))[0][0]
+        end_date = list(db_curs.execute("SELECT date FROM '{}-act' ORDER BY date DESC LIMIT 1".format(table_prefix_new)))[0][0]
+        total_days = (datetime.datetime.fromisoformat(end_date) - datetime.datetime.fromisoformat(start_date)).days
+
+        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (table_prefix_new, start_date, end_date, act_total, act_total / total_days))
         db_conn.commit()
 
         return (0, "Successfully loaded file.", table_prefix_new)
@@ -403,7 +408,7 @@ def compute_activity():
     print("[i] Computing activity...")
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
 
     weekday_last = 0
     hour_last = 0
@@ -418,7 +423,7 @@ def compute_activity():
     with open(api_state.fp, encoding="utf-8") as f:
         for line in f:
             try:
-                entry = ("unknown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                entry = ("unknown", datetime.date(2000, 1, 1), "00:00", 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
                 has_date = re.match(api_state.re_lang_filter_syntax, line) is not None
                 has_name = re.match(api_state.re_lang_filter_log_syntax, line) is None
@@ -430,11 +435,12 @@ def compute_activity():
                     time = line.split(" - ")[0]
                     hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
                     date_last = datetime.datetime.strptime(time, api_state.lang_datetime)
+                    time_last = date_last.time().strftime("%H:%M")
                     weekday_last = date_last.weekday()
                     day_last = date_last.date()
 
                 if not has_name:
-                    log_msgs.append((line, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
+                    log_msgs.append((line, day_last, time_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
                 else:
                     if is_message:
                         linesplit = line.split(" - ", 1)[1].split(': ', 1)
@@ -445,7 +451,7 @@ def compute_activity():
                             names.append(name_last)
 
                         if is_media:
-                            entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
+                            entry = (name_last, day_last, time_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
                     else:
                         is_cont = True
                         linerest = line
@@ -490,10 +496,10 @@ def compute_activity():
                                 else:
                                     words += 1
 
-                        entry = (name_last, day_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
+                        entry = (name_last, day_last, time_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
 
                     if is_cont:
-                        entries[-1] = entries[-1][:7] + (entries[-1][7] + entry[7], entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10])
+                        entries[-1] = entries[-1][:8] + (entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10], entries[-1][11] + entry[11])
                     else:
                         entries.append(entry)
             except Exception as e:
@@ -504,7 +510,7 @@ def compute_activity():
             if name in element[0]:
                 entries.append((name, ) + element[1:])
 
-    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
 
@@ -728,6 +734,24 @@ def get_loadfile():
         return "No prefix specified."
 
     return api_state.loadfile(prefix)
+
+@server.route("/api/getchatssummary")
+def get_chatssummary():
+    db_conn, db_curs = getdbconnection()
+    return json.dumps(list(db_curs.execute("SELECT * FROM chats")))
+
+@server.route("/api/gettotalsummary")
+def get_totalsummary():
+    db_conn, db_curs = getdbconnection()
+    try:
+        total_msg = list(db_curs.execute("SELECT SUM(total_msg) FROM chats"))[0][0]
+        total_start_date = datetime.datetime.fromisoformat(list(db_curs.execute("SELECT start_date FROM chats ORDER BY start_date LIMIT 1"))[0][0])
+        total_end_date = datetime.datetime.fromisoformat(list(db_curs.execute("SELECT end_date FROM chats ORDER BY end_date DESC LIMIT 1"))[0][0])
+        total_days = (total_end_date - total_start_date).days
+        avg_msg_per_day = total_msg / total_days
+        return json.dumps((("Total messages", total_msg), ("Average messages per day", "{:.2f}".format(avg_msg_per_day))))
+    except IndexError:
+        return json.dumps((("Total messages", 0), ("Average messages per day", 0)))
 
 @server.route("/api/getlang")
 def getlang():

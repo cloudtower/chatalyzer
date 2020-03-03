@@ -19,6 +19,13 @@ function toggleNewChatDialog(open) {
     }
 }
 
+function summary_init() {
+    var main_table_body = document.getElementById("chats_table_body");
+    makeapicall("getchatssummary", (message) => { main_table_body.parentNode.row_widths = []; updatetable(main_table_body, message, minimal=true) });
+    var stats_table_body = document.getElementById("stats_table_body");
+    makeapicall("gettotalsummary", (message) => { stats_table_body.parentNode.row_widths = []; updatetable(stats_table_body, message, minimal=true) });
+}
+
 function resetNewChatDialog() {
     document.getElementById("loadnewfile_submit_wrap").innerHTML = "<button class=\"btn\" onclick=\"loadnewfile()\">Submit</button>";
     document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "");
@@ -80,8 +87,12 @@ function loadnewfile() {
             var data = JSON.parse(message);
             if (data[0] == 0) {
                 document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
-                getavailfiles(doloadfile = false, select_override = data[2]);
-                loadfile(data[2], silent = true);
+                if (document.location.href.endsWith("summary.html")) {
+                    summary_init();
+                } else {
+                    getavailfiles(doloadfile = false, select_override = data[2]);
+                    loadfile(data[2], true);
+                }
             } else if (data[0] == 1) {
                 swal(data[1]);
                 resetNewChatDialog();

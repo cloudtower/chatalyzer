@@ -2,6 +2,12 @@ body {
     background-color: #333333;
 }
 
+h1 {
+    color: #dddddd;
+    font-family: Arial;
+    margin: 20px;
+}
+
 #main_data {
     margin: 25px;
     height: 70%;
@@ -139,4 +145,22 @@ td {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+#chats_table {
+    width: 100%;
+    color: #ffffff;
+}
+
+#summary_stats {
+    padding-top: 40px;
+    padding-bottom: 40px;
+}
+
+#stats_table {
+    color: #ffffff;
+}
+
+#stats_table td {
+    padding-left: 20px;
 }

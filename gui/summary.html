@@ -1,0 +1,55 @@
+<html>
+
+<head>
+    <meta charset="uft-8">
+    <script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="main.js"></script>
+    <script>
+        window.onload = (event) => {
+            summary_init();
+            getlangoptions();
+        }
+    </script>
+    <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <h1><button id="btn_options" class="btn" onclick="toggleSidebar(true)"><i class="fas fa-bars" style="font-size: 20px; color: #000000"></i></button> Chats</h1>
+    <div id="sidenav_main" class="sidenav">
+        <a class="closebtn" onclick="toggleSidebar(false)">&times;</a>
+        <a href="options.html"><i class="fas fa-cogs" style="font-size: 20px"></i> Settings</a>
+        <a onclick="toggleNewChatDialog(true)"><i class="fas fa-user-plus" style="font-size: 20px"></i> Add new Chat</a>
+        <a href="main.html"><i class="fa fa-chart-bar" style="font-size: 20px"></i> Analysis View</a>
+    </div>
+
+    <div id="main_data">
+    <div id="summary_stats">
+        <table id="stats_table">
+            <tbody id="stats_table_body"></tbody>
+        </table>
+    </div>
+    <div id="chats_table_wrap">
+        <table class="table" id="chats_table">
+            <thead>
+                <tr><th>Chat Name</th><th>First Message</th><th>Last Message</th><th>Total Messages</th><th>Average messages daily</th></tr>
+            </thead>
+            <tbody id="chats_table_body"></tbody>
+        </table>
+    </div>
+    <div id="newchat_dialog" class="dialog">
+        <a class="closebtn" onclick="toggleNewChatDialog(false)">&times;</a>
+        <div id="newchat_dialog_main">
+            <button class="btn" onclick="pickfile()">Pick File</button>
+            <div class="buttonlike">
+                <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
+                <select class="form-control" id="langmain" onchange="switchlang()"></select>
+            </div>
+            <div id="loadnewfile_submit_wrap" style="display: inline-block"><button class="btn" onclick="loadnewfile()">Submit</button></div>
+        </div>
+    </div>
+    </div>
+</body>
+
+</html>
