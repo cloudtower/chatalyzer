@@ -139,7 +139,7 @@ class APIState():
         end_date = list(db_curs.execute("SELECT date FROM '{}-act' ORDER BY date DESC LIMIT 1".format(table_prefix_new)))[0][0]
         total_days = (datetime.datetime.fromisoformat(end_date) - datetime.datetime.fromisoformat(start_date)).days
 
-        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (table_prefix_new, start_date, end_date, act_total, act_total / total_days))
+        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (table_prefix_new, start_date, end_date, act_total, "{:.2f}".format(act_total / total_days)))
         db_conn.commit()
 
         return (0, "Successfully loaded file.", table_prefix_new)
