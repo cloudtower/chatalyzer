@@ -638,12 +638,16 @@ def compute_usage():
                                     while j < len(word):
                                         toappend = word[j]
                                         # handle multiple emojis joined by zero-width space
-                                        if j < len(word) - 1 and word[j + 1] == 0x200d:
-                                            while j < len(word) - 2 and word[j + 1] == 0x200d:
+                                        while (j < len(word) - 2 and ord(word[j + 1]) == 0x200d) or (j < len(word) - 2 and ord(word[j + 2]) == 0x200d):
+                                            if ord(word[j + 1]) == 0x200d:
                                                 toappend += word[j + 1:j + 3]
                                                 j += 2
+                                            else:
+                                                toappend += word[j + 1:j + 4]
+                                                j += 3
+                                                toappend += chr(0xfe0f)
                                         # handle emojis with skin color modifier and regional identifiers
-                                        elif j < len(word) - 1 and (isfitzpatrickemoji(word[j + 1]) or isregionalindicator(word[j + 1])):
+                                        if j < len(word) - 1 and (isfitzpatrickemoji(word[j + 1]) or isregionalindicator(word[j + 1])):
                                             toappend += word[j + 1]
                                             j += 1
                                         filtered.append(toappend)
@@ -657,7 +661,7 @@ def compute_usage():
                                     entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word.lower())
                                 elif re.match(api_state.re_lang_special_chars, word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
-                                elif len(word) <= 2 and isemoji(word):
+                                elif isemoji(word):
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
                                 else:
                                     entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 0, 1, word)
@@ -775,6 +779,8 @@ def isemoji(ch):
         or i in range(0x1f680, 0x1f700) # Transport and Map Symbols
         or i in range(0x1f300, 0x1f600) # Miscellaneous Symbols and Pictographs
         or i == 0x20e3 # Combining Enclosing Keycap
+        or i == 0x200d # Zero Width joiner for multiple Emojis
+        or i == 0xfe0f # Variation Selector ending multiple Emojis
         or i in range(0x30, 0x40) # Numbers (for enclosed combinations)
         or i in range(0x2190, 0x2200) # Arrows
         or i in range(0x2300, 0x2400) # Miscellaneous Technical
