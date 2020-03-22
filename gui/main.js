@@ -26,10 +26,12 @@ function summary_init() {
     makeapicall("gettotalsummary", (message) => { stats_table_body.parentNode.row_widths = []; updatetable(stats_table_body, message, minimal=true) });
 }
 
-function resetNewChatDialog() {
+function resetNewChatDialog(resetnewfile = true) {
     document.getElementById("loadnewfile_submit_wrap").innerHTML = "<button class=\"btn\" onclick=\"loadnewfile()\">Submit</button>";
     document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "");
-    newfile_name = undefined;
+    if (resetnewfile) {
+        newfile_name = undefined;
+    }
 }
 
 function getavailfiles(doloadfile = true, select_override = null) {
@@ -95,10 +97,10 @@ function loadnewfile() {
                 }
             } else if (data[0] == 1) {
                 swal(data[1]);
-                resetNewChatDialog();
+                resetNewChatDialog(false);
             } else if (data[0] == 2) {
                 swal("Chat format check failed. Please check if you selected the correct language.")
-                resetNewChatDialog();
+                resetNewChatDialog(false);
             }
         })
     }
