@@ -62,7 +62,7 @@ function getlangoptions() {
         var data = JSON.parse(message);
         var options = data["options"];
         var lang_select = document.getElementById("langmain");
-        for (i = 0; i < options.length; i++) {
+        for (var i = 0; i < options.length; i++) {
             var option = document.createElement("option")
             option.innerHTML = options[i];
             lang_select.appendChild(option);
@@ -267,7 +267,7 @@ function statsbyword() {
 function update_labellist(parentdiv, message) {
     parentdiv.innerHTML = "";
     var data = JSON.parse(message);
-    for (i = 0; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) {
         var newspan = document.createElement("div");
         newspan.setAttribute("style", "vertical-align: middle; padding: 1px; padding-left: 8px; padding-right: 8px; background-color: #eeeeee");
         newspan.setAttribute("class", "buttonlike");
@@ -295,7 +295,7 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
         table.lengthdisplay.innerHTML = "Results " + ((table.pagesize * table.pagenum) + 1) + " - " + Math.min((table.pagesize * (table.pagenum + 1)), table.length) + " of " + table.length;
     }
     if (content.length != 0) { tbody.parentNode.parentNode.style.visibility = "visible"; }
-    for (i = 0; i < content.length; i++) {
+    for (var i = 0; i < content.length; i++) {
         var row = tbody.insertRow(i);
         var offset = 0;
         if (deletable) {
@@ -310,7 +310,7 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
             btncell.appendChild(delbtn);
             var offset = 1;
         }
-        for (j = 0; j < content[i].length; j++) {
+        for (var j = 0; j < content[i].length; j++) {
             if (minimal) { content[i][j] = content[i][j] == null ? 0 : content[i][j]}
             if (table.make_emoji >= 0 && j == table.make_emoji) {
                 var new_cell = row.insertCell(j + offset);
@@ -474,7 +474,7 @@ function add_name_filter(parent_div, id_additional = "", prepend = false) {
     callback = function (select) {
         return function (message) {
             var names = JSON.parse(message);
-            for (i = 0; i < names.length; i++) {
+            for (var i = 0; i < names.length; i++) {
                 var option = document.createElement("option");
                 option.innerHTML = names[i];
                 option.value = names[i];
@@ -503,7 +503,7 @@ function add_select(parent_div, options, labels, label, id_additional = "", prep
     } else {
         parent_div.appendChild(name_select_div);
     }
-    for (i = 0; i < options.length; i++) {
+    for (var i = 0; i < options.length; i++) {
         var option = document.createElement("option");
         option.innerHTML = labels[i];
         option.value = options[i];
@@ -650,7 +650,7 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
         if (document.getElementById("timefilter_check").checked) {
             url += "&timefilter=" + $('#timefilter').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter').data("daterangepicker").endDate.format("YYYY-MM-DD")
         }
-        for (i = 0; i < outputs.length; i++) {
+        for (var i = 0; i < outputs.length; i++) {
             outputs[i].filter_url = url;
             outputs[i].refresh();
         }
@@ -673,9 +673,9 @@ function updatechart(chart, data) {
     var content = JSON.parse(data);
     var data_dicts = []
     var labels = content[0];
-    for (i = 0; i < content[1].length; i++) {
+    for (var i = 0; i < content[1].length; i++) {
         data_dicts = []
-        for (j = 0; j < content[1][i][1].length; j++) {
+        for (var j = 0; j < content[1][i][1].length; j++) {
             if (content[1][i][1][j].length == undefined) {
                 data_dicts.push({ y: content[1][i][1][j] });
             } else {
