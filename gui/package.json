@@ -16,7 +16,7 @@
   ],
   "author": "Lion Steger",
   "devDependencies": {
-    "electron": "^7.1.10"
+    "electron": "^7.2.4"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.5.0",
