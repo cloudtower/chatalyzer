@@ -26,6 +26,16 @@ DEFAULT_SETTINGS = {
         "options": ["en", "de"],
         "selected": "0"
     },
+    "default_dev": {
+        "desc": "Default device",
+        "options": ["android", "ios"],
+        "selected": "0"
+    },
+    "default_chat": {
+        "desc": "Default Chat Application",
+        "options": ["whatsapp", "telegram"],
+        "selected": "0"
+    },
     "color_scheme": {
         "desc": "Color Scheme",
         "options": ["dark"],
@@ -44,8 +54,8 @@ class APIState():
         if not len(list(db_curs.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chats'"))):
             db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer)")
 
-        self.setlang()
         self.parse_config_file()
+        self.setlang()
 
     def loadstopwords(self, lang="en"):
         self.stopwords = []
@@ -64,21 +74,32 @@ class APIState():
         except IOError:
             print("[!] Error while reading stopwords file!")
 
-    def setlang(self, lang="en"):
-        if lang == "en":
-            self.re_lang_filter_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - .*"
-            self.re_lang_filter_log_syntax = r"(\d{1,2}\/){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
+    def setlang(self, lang=None, dev=None, chat=None):
+        if lang:
+            self.lang_global = lang
+        if dev:
+            self.dev_global = dev
+        if chat:
+            self.chat_global = chat
+
+        if self.lang_global == "en":
+            self.re_lang_filter_syntax = r"((\d{1,2}\/){2}\d{2}, \d{2}:\d{2}) - ([^\:]+): .*"
+            self.re_lang_filter_log_syntax = r"((\d{1,2}\/){2}\d{2}, \d{2}:\d{2}) - ([^\:])*$"
             self.re_lang_filter_media = r"<Media omitted>"
             self.re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
             self.lang_datetime = "%m/%d/%y, %H:%M"
-            self.lang_global = "en"
-        elif lang == "de":
-            self.re_lang_filter_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - .*"
-            self.re_lang_filter_log_syntax = r"(\d{2}\.){2}\d{2}, \d{2}:\d{2} - ([^\:])*$"
-            self.re_lang_filter_media = r"<Medien ausgeschlossen>|<Medien weggelassen>"
+        elif self.lang_global == "de":
+            if self.dev_global == "ios":
+                self.re_lang_filter_syntax = r"\[((\d{2}\.){2}\d{2}, \d{2}:\d{2}:\d{2})\] ([^\:]+): .*"
+                self.re_lang_filter_log_syntax = r"\[((\d{2}\.){2}\d{2}, \d{2}:\d{2}:\d{2})\] ([^\:]+)$"
+                self.re_lang_filter_media = r"<Video weggelassen>|<Audio weggelassen>|<Bild weggelassen>"
+                self.lang_datetime = "%d.%m.%y, %H:%M:%S"
+            else:
+                self.re_lang_filter_syntax = r"((\d{2}\.){2}\d{2}, \d{2}:\d{2}) - ([^\:]+): .*"
+                self.re_lang_filter_log_syntax = r"((\d{2}\.){2}\d{2}, \d{2}:\d{2}) - ([^\:])*$"
+                self.re_lang_filter_media = r"<Medien ausgeschlossen>|<Medien weggelassen>"
+                self.lang_datetime = "%d.%m.%y, %H:%M"
             self.re_lang_special_chars = r"[\.\,\/\;\-\!\?\=\%\"\&\:\+\#\(\)\^\'\*\[\]\€\@\~\{\}\<\>\´\`\°\\\|]"
-            self.lang_datetime = "%d.%m.%y, %H:%M"
-            self.lang_global = "de"
 
         self.textemojis = ["^^", ":)", ";)", ":D", "xD", ";P", ":P", ";D", ":-)", ";-)", ":-D", ":d", ";d", "<3", "-.-", ":(", ":/", ">_<"]
         self.re_textemojis = r"|".join([re.escape(el) for el in self.textemojis])
@@ -104,10 +125,11 @@ class APIState():
 
     def parse_config(self, key, index):
         if key == "default_lang":
-            try:
-                self.setlang(self.settings_global["default_lang"]["options"][index])
-            except IndexError:
-                self.setlang()
+            self.lang_global = self.settings_global["default_lang"]["options"][index]
+        elif key == "default_chat":
+            self.chat_global = self.settings_global["default_chat"]["options"][index]
+        elif key == "default_dev":
+            self.dev_global = self.settings_global["default_dev"]["options"][index]
 
     def loadfile(self, prefix):
         self.table_prefix = prefix
@@ -123,7 +145,7 @@ class APIState():
             print("[!] File {} not found!".format(filename))
             return (1, "File not found.", "")
 
-        if chat_check(filename) > 0:
+        if chat_check(filename, self.chat_global) > 0:
             return (2, "Chat check failed.", "")
 
         self.fp = filename
@@ -160,10 +182,12 @@ def find_names():
     return list(db_cursor.execute("SELECT DISTINCT name FROM '{}' ORDER BY name".format(api_state.table_prefix + '-act')))
 
 
-def chat_check(filename):
+def chat_check(filename, chat):
+    if chat == "telegram":
+        return 0
     with open(filename, encoding="utf-8") as f:
         for line in f:
-            if re.match(api_state.re_lang_filter_syntax, line) is not None:
+            if re.match(api_state.re_lang_filter_syntax, line):
                 return 0
     return 1
 
@@ -766,10 +790,12 @@ def getlang():
 
 @server.route("/api/setlang")
 def setlang():
-    lang = param_to_string(request.args.get("lang"), "en")
-    api_state.setlang(lang)
+    lang = param_to_string(request.args.get("lang"), None)
+    dev = param_to_string(request.args.get("dev"), None)
+    chat = param_to_string(request.args.get("chat"), None)
+    api_state.setlang(lang, dev, chat)
 
-    return "Language successfully set."
+    return "Parser settings successfully set."
 
 
 def isemoji(ch):

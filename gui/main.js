@@ -59,11 +59,17 @@ function getavailfiles(doloadfile = true, select_override = null) {
     })
 }
 
-function getlangoptions() {
-    makeapicall("getoptions?key=default_lang", function (message) {
+function getprocessingoptions() {
+    getoptions("langmain", "default_lang");
+    getoptions("devmain", "default_dev");
+    getoptions("chatmain", "default_chat");
+}
+
+function getoptions(selectid, key) {
+    makeapicall("getoptions?key=" + key, function (message) {
         var data = JSON.parse(message);
         var options = data["options"];
-        var lang_select = document.getElementById("langmain");
+        var lang_select = document.getElementById(selectid);
         for (var i = 0; i < options.length; i++) {
             var option = document.createElement("option")
             option.innerHTML = options[i];
@@ -468,7 +474,9 @@ function activitybytime() {
 
 function switchlang() {
     var langmain = document.getElementById("langmain");
-    makeapicall(("setlang?lang=" + langmain.options[langmain.selectedIndex].text), swal);
+    var devmain = document.getElementById("devmain");
+    var chatmain = document.getElementById("chatmain");
+    makeapicall(("setlang?lang=" + langmain.options[langmain.selectedIndex].text + "&dev=" + devmain.options[devmain.selectedIndex].text) + "&chat=" + chatmain.options[chatmain.selectedIndex].text, function(){});
 }
 
 function add_name_filter(parent_div, id_additional = "", prepend = false) {
@@ -770,7 +778,7 @@ function makeapicall(url, callback) {
             callback(this.responseText);
         }
     };
-    var url = url.replace("?","&").replace("&","?");
+    var url = url.replace("?", "&").replace("&", "?");
     xhttp.open("GET", api_url + url, true);
     xhttp.send();
 }

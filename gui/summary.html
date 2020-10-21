@@ -7,7 +7,7 @@
     <script>
         window.onload = (event) => {
             summary_init();
-            getlangoptions();
+            getprocessingoptions();
         }
     </script>
     <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
@@ -45,6 +45,12 @@
             <div class="buttonlike">
                 <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
                 <select class="form-control" id="langmain" onchange="switchlang()"></select>
+            </div>
+            <div class="buttonlike">
+                <select class="form-control" id="chatmain" onchange="switchlang()"></select>
+            </div>
+            <div class="buttonlike">
+                <select class="form-control" id="devmain" onchange="switchlang()"></select>
             </div>
             <div id="loadnewfile_submit_wrap" style="display: inline-block"><button class="btn" onclick="loadnewfile()">Submit</button></div>
         </div>
