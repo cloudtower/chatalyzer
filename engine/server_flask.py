@@ -92,11 +92,11 @@ class APIState():
             print("[!] Error: Config file not found!")
             settings_json = ""
 
+        self.settings_global = DEFAULT_SETTINGS
         try:
-            self.settings_global = json.loads(settings_json)
+            self.settings_global.update(json.loads(settings_json))
         except json.decoder.JSONDecodeError as e:
-            print("[!] Encountered error while parsing settings:")
-            print(e)
+            print("[!] Encountered error while parsing settings:", e)
             self.settings_global = DEFAULT_SETTINGS
 
         for key, value in self.settings_global.items():
