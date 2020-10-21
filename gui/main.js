@@ -40,7 +40,9 @@ function getavailfiles(doloadfile = true, select_override = null) {
         var file_display_div = document.getElementById("current_file_div");
         if (data.length == 0) {
             file_display_div.innerHTML = "<button class=\"btn\" style=\"background-color: #ffffff\" onclick=\"toggleNewChatDialog(true)\">Load new Chat</button>"
+            document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = true))
         } else {
+            document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = false))
             file_display_div.innerHTML = "";
             var sel = add_select(file_display_div, data, data, "Chat", id_additional = "", prepend = "", empty_option = false);
             sel.setAttribute("id", "chat_sel");
