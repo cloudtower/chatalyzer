@@ -6,6 +6,10 @@ Pick a chat file (make sure to select the correct language beforehand!) and clic
 
 ## Chat retrieval and supported modes
 
-At the moment, this tool only supports chat data exported via e-mail from Android devices running in English or German language mode. More devices and languages coming soon.
+At the moment, this tool supports:
+
+- WhatsApp chats exported via email from Android devices
+- WhatsApp chats exported via email from iOS devices
+- Telegram chats exported as JSON from the Telegram desktop app
 
 ![Screenshot](screenshot.png)
