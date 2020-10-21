@@ -643,7 +643,7 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
             checkbox_div.querySelectorAll('li').forEach(li => li.querySelectorAll("input").forEach(input_inner => { url += ((input_inner.checked) ? "&" + params[n] + "=true" : ""); n++ }));
         }
         if (filter_names) {
-            url += append_select_to_url("namefilter", name_select);
+            url += append_select_to_url("namefilter", name_select, true);
         }
         if (aggregation_input) {
             var aggr = aggr_input.value;
