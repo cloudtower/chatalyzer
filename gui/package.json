@@ -25,7 +25,7 @@
     "chart.js": "^2.7.3",
     "daterangepicker": "^3.0.3",
     "emojione": "^4.5.0",
-    "jquery": "^3.4.0",
+    "jquery": "^3.5.0",
     "moment": "^2.22.2",
     "sweetalert": "^2.1.2"
   }
