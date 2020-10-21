@@ -191,7 +191,7 @@ def get_activity_raw():
 
     length = list(db_cursor.execute("SELECT COUNT(*) FROM(" + sql + ")", params))[0]
 
-    sql += " ORDER BY {} {} LIMIT {} OFFSET {}".format(ACT_COLUMNAMES[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize))
+    sql += " ORDER BY {} {} LIMIT {} OFFSET {}".format(ACT_COLUMNAMES[sort], SQL_ASC_BOOL[asc], pagesize, (pagenumber * pagesize))
 
     return json.dumps((length, list(db_cursor.execute(sql, params))))
 
@@ -202,6 +202,8 @@ def get_activity_by_name():
 
     asc = param_to_bool(request.args.get("asc"))
     sort = param_to_int(request.args.get("sortby"))
+    pagesize = param_to_int(request.args.get("pagesize"), 50)
+    pagenumber = param_to_int(request.args.get("pagenumber"))
     chartype_filter = param_to_string(request.args.get("chartype"), "none")
 
     mode = request.args.get("mode")
@@ -211,7 +213,7 @@ def get_activity_by_name():
         output = activity_filter(db_output)
         return json.dumps(([el[0] for el in db_output], output))
     else:
-        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '{}' GROUP BY name ORDER BY {} {}".format((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc])))
+        db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '{}' GROUP BY name ORDER BY {} {} LIMIT {} OFFSET {}".format((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc], pagesize, (pagenumber * pagesize))))
         return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '{}' GROUP BY name)".format(api_state.table_prefix + '-act')))[0], db_output))
 
     db_conn.close()
