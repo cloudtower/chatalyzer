@@ -137,10 +137,6 @@ class APIState():
 
     def loadnewfile(self, filename):
         print("[i] " + filename)
-        table_prefix_new = re.split(r"[\/\\]", filename)[-1].split(".")[0]
-        table_prefix_new = re.sub(r"\W", "_", table_prefix_new)
-        print("[i] New table prefix: " + table_prefix_new)
-
         if not os.path.isfile(filename):
             print("[!] File {} not found!".format(filename))
             return (1, "File not found.", "")
@@ -149,22 +145,25 @@ class APIState():
             return (2, "Chat check failed.", "")
 
         self.fp = filename
-        self.table_prefix = table_prefix_new
 
-        compute_activity()
-        compute_usage()
+        if self.chat_global == "telegram":
+            compute_activity_telegram()
+            compute_usage_telegram()
+        else:
+            compute_activity_whatsapp()
+            compute_usage_whatsapp()
 
         db_conn, db_curs = getdbconnection()
 
-        act_total = list(db_curs.execute("SELECT COUNT(*) FROM '{}-act'".format(table_prefix_new)))[0][0]
-        start_date = list(db_curs.execute("SELECT date FROM '{}-act' LIMIT 1".format(table_prefix_new)))[0][0]
-        end_date = list(db_curs.execute("SELECT date FROM '{}-act' ORDER BY date DESC LIMIT 1".format(table_prefix_new)))[0][0]
-        total_days = (datetime.datetime.fromisoformat(end_date) - datetime.datetime.fromisoformat(start_date)).days
+        act_total = list(db_curs.execute("SELECT COUNT(*) FROM '{}-act'".format(self.table_prefix)))[0][0]
+        start_date = list(db_curs.execute("SELECT date FROM '{}-act' LIMIT 1".format(self.table_prefix)))[0][0]
+        end_date = list(db_curs.execute("SELECT date FROM '{}-act' ORDER BY date DESC LIMIT 1".format(self.table_prefix)))[0][0]
+        total_days = (datetime.datetime.fromisoformat(end_date) - datetime.datetime.fromisoformat(start_date)).days + 1
 
-        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (table_prefix_new, start_date, end_date, act_total, "{:.2f}".format(act_total / total_days)))
+        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (self.table_prefix, start_date, end_date, act_total, "{:.2f}".format(act_total / total_days)))
         db_conn.commit()
 
-        return (0, "Successfully loaded file.", table_prefix_new)
+        return (0, "Successfully loaded file.", self.table_prefix)
 
 
 @server.route("/api/getloadedfile")
@@ -430,8 +429,54 @@ def activity_db_pad(labels, output, dontsort=False):
     return output
 
 
-def compute_activity():
-    print("[i] Computing activity...")
+def parse_message_activity(linerest):
+    linesplit = linerest.split(" ")
+    inter_punct = []
+    inter_emoji = []
+    filtered = []
+
+    for word in linesplit:
+        hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
+        if hyperlink is not None:
+            filtered.append(hyperlink.group(0))
+        else:
+            for part in re.split(r"([^\wäöü]+)", word):
+                inter_punct.append(part)
+
+    for word in inter_punct:
+        for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
+            inter_emoji.append(part)
+
+    for word in inter_emoji:
+        if re.match(r"[\wäöü]+", word) is None and re.match(api_state.re_lang_special_chars, word) is None:
+            for c in word:
+                filtered.append(c)
+        else:
+            filtered.append(word)
+
+    words = 0
+    emojis = 0
+    puncts = 0
+    for word in filtered:
+        if word != "\n" and word != "":
+            if re.match(r'\w+', word, re.UNICODE):
+                words += 1
+            elif re.match(api_state.re_lang_special_chars, word):
+                puncts += 1
+            elif len(word) == 1 and isemoji(word):
+                emojis += 1
+            else:
+                words += 1
+
+    return (words, emojis, puncts)
+
+def compute_activity_whatsapp():
+    table_prefix_new = re.split(r"[\/\\]", api_state.fp)[-1].split(".")[0]
+    table_prefix_new = re.sub(r"\W", "_", table_prefix_new)
+    api_state.table_prefix = table_prefix_new
+    print("[i] New table prefix: " + api_state.table_prefix)
+
+    print("[i] Computing activity (WhatsApp)...")
     db_conn, db_cursor = getdbconnection()
 
     db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
@@ -451,27 +496,29 @@ def compute_activity():
             try:
                 entry = ("unknown", datetime.date(2000, 1, 1), "00:00", 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
-                has_date = re.match(api_state.re_lang_filter_syntax, line) is not None
-                has_name = re.match(api_state.re_lang_filter_log_syntax, line) is None
+                is_message = re.match(api_state.re_lang_filter_syntax, line) is not None
+                is_logmsg = re.match(api_state.re_lang_filter_log_syntax, line) is not None
                 is_media = re.search(api_state.re_lang_filter_media, line) is not None
-                is_message = has_date
                 is_cont = False
 
-                if has_date:
-                    time = line.split(" - ")[0]
-                    hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                    date_last = datetime.datetime.strptime(time, api_state.lang_datetime)
-                    time_last = date_last.time().strftime("%H:%M")
-                    weekday_last = date_last.weekday()
-                    day_last = date_last.date()
+                if is_message or is_logmsg:
+                    if is_message:
+                        msg_match = re.match(api_state.re_lang_filter_syntax, line)
+                    elif is_logmsg:
+                        msg_match = re.match(api_state.re_lang_filter_log_syntax, line)
 
-                if not has_name:
+                    date_time = datetime.datetime.strptime(msg_match.group(1), api_state.lang_datetime)
+                    hour_last = date_time.hour
+                    time_last = date_time.time().strftime("%H:%M")
+                    weekday_last = date_time.weekday()
+                    day_last = date_time.date()
+
+                if is_logmsg:
                     log_msgs.append((line, day_last, time_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
                 else:
                     if is_message:
-                        linesplit = line.split(" - ", 1)[1].split(': ', 1)
-                        name_last = linesplit[0]
-                        linerest = linesplit[1]
+                        name_last = msg_match.group(3)
+                        linerest = line.split(': ', 1)[1]
 
                         if name_last not in names:
                             names.append(name_last)
@@ -483,45 +530,7 @@ def compute_activity():
                         linerest = line
 
                     if not is_media:
-                        linesplit = linerest.split(" ")
-                        inter_punct = []
-                        inter_emoji = []
-                        filtered = []
-
-                        for word in linesplit:
-                            hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
-                            if hyperlink is not None:
-                                filtered.append(hyperlink.group(0))
-                            else:
-                                for part in re.split(r"([^\wäöü]+)", word):
-                                    inter_punct.append(part)
-
-                        for word in inter_punct:
-                            for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
-                                inter_emoji.append(part)
-
-                        for word in inter_emoji:
-                            if re.match(r"[\wäöü]+", word) is None and re.match(api_state.re_lang_special_chars, word) is None:
-                                for c in word:
-                                    filtered.append(c)
-                            else:
-                                filtered.append(word)
-
-                        words = 0
-                        emojis = 0
-                        puncts = 0
-
-                        for word in filtered:
-                            if word != "\n" and word != "":
-                                if re.match(r'\w+', word, re.UNICODE):
-                                    words += 1
-                                elif re.match(api_state.re_lang_special_chars, word):
-                                    puncts += 1
-                                elif len(word) == 1 and isemoji(word):
-                                    emojis += 1
-                                else:
-                                    words += 1
-
+                        words, emojis, puncts = parse_message_activity(linerest)
                         entry = (name_last, day_last, time_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
 
                     if is_cont:
@@ -529,12 +538,59 @@ def compute_activity():
                     else:
                         entries.append(entry)
             except Exception as e:
-                print("[!] Caught exception during activity computation: " + str(e))
+                print("[!] Caught exception during activity computation: " + str(e) + line)
 
     for element in log_msgs:
         for name in names:
             if name in element[0]:
                 entries.append((name, ) + element[1:])
+
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
+    db_conn.commit()
+    db_conn.close()
+
+
+def compute_activity_telegram():
+    print("[i] Computing activity (Telegram)...")
+    db_conn, db_cursor = getdbconnection()
+
+    with open(api_state.fp, encoding="utf-8") as f:
+        data = json.loads(f.read())
+
+    try:
+        api_state.table_prefix = data["name"]
+    except KeyError:
+        api_state.table_prefix = "Saved messages"
+    print("[i] New table prefix: " + api_state.table_prefix)
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
+
+    entries = []
+    for msg in data["messages"]:
+        dt = datetime.datetime.fromisoformat(msg["date"])
+        if msg["type"] == "service":
+            entries.append(("Telegram", dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 0, 1, 0, 0, 0, 0))
+        else:
+            if not msg["from"]:
+                msg["from"] = "unknown"
+            if "file" in msg:
+                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 1, 0, 0, 0, 0, 0))
+            else:
+                if isinstance(msg["text"], list):
+                    words, emojis, puncts, chars = 0, 0, 0, 0
+                    for el in msg["text"]:
+                        if isinstance(el, dict):
+                            words += 1
+                            chars += len(el["text"])
+                        else:
+                            words_new, emojis_new, puncts_new = parse_message_activity(el)
+                            words += words_new
+                            emojis += emojis_new
+                            puncts += puncts_new
+                            chars += len(el)
+                else:
+                    words, emojis, puncts = parse_message_activity(msg["text"])
+                    chars = len(msg["text"])
+                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 1, 0, 0, words, chars, emojis, puncts))
 
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
@@ -591,8 +647,87 @@ def get_usage_by_word():
         return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '{}' WHERE word like ?".format(api_state.table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
 
 
-def compute_usage():
-    print("[i] Computing usage...")
+def parse_message_usage(linerest, name_last, day_last, hour_last, weekday_last):
+    entries = []
+    linesplit = linerest.split(" ")
+    inter_punct = []
+    inter_emoji = []
+    filtered = []
+
+    hyperlinks = []
+    textemojis = []
+
+    # handle hyperlinks
+    for word in linesplit:
+        hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
+        if hyperlink is not None:
+            hyperlinks.append(hyperlink.group(0))
+            inter_punct.append(word[:hyperlink.span(0)[0]])
+            inter_punct.append(word[hyperlink.span(0)[1]:])
+        else:
+            for part in re.split(r"(" + api_state.re_textemojis + r")", word):
+                if part in api_state.textemojis:
+                    textemojis.append(part)
+                else:
+                    for subpart in re.split(r"([^\wäöü]+)", part):
+                        inter_punct.append(subpart)
+
+    for word in inter_punct:
+        for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
+            inter_emoji.append(part)
+
+    for i, word in enumerate(inter_emoji):
+        # handle keycap emoji sequences
+        if i < len(inter_emoji) - 1 and len(inter_emoji[i + 1]) > 0 and ord(inter_emoji[i + 1][0]) == 0x20e3:
+            if len(word) > 1:
+                filtered.append(word[:-1])
+            filtered.append(word[-1] + inter_emoji[i + 1][0])
+            inter_emoji[i + 1] = inter_emoji[i + 1][1:]
+        else:
+            if re.match(r"[\wäöü]+$", word) is None and re.match(api_state.re_lang_special_chars + r"+$", word) is None:
+                j = 0
+                while j < len(word):
+                    toappend = word[j]
+                    # handle multiple emojis joined by zero-width space
+                    while (j < len(word) - 2 and ord(word[j + 1]) == 0x200d) or (j < len(word) - 2 and ord(word[j + 2]) == 0x200d):
+                        if ord(word[j + 1]) == 0x200d:
+                            toappend += word[j + 1:j + 3]
+                            j += 2
+                        else:
+                            toappend += word[j + 1:j + 4]
+                            j += 3
+                            toappend += chr(0xfe0f)
+                    # handle emojis with skin color modifier and regional identifiers
+                    if j < len(word) - 1 and (isfitzpatrickemoji(word[j + 1]) or isregionalindicator(word[j + 1])):
+                        toappend += word[j + 1]
+                        j += 1
+                    filtered.append(toappend)
+                    j += 1
+            else:
+                filtered.append(word)
+
+    for word in filtered:
+        if word != "\n" and word != "":
+            if re.match(r'\w+$', word, re.UNICODE):
+                entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word.lower())
+            elif re.match(api_state.re_lang_special_chars, word):
+                entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
+            elif isemoji(word):
+                entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
+            else:
+                entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 0, 1, word)
+
+            entries.append(entry)
+
+    for word in hyperlinks:
+        entries.append((name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, 0, word))
+    for word in textemojis:
+        entries.append((name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word))
+
+    return entries
+
+def compute_usage_whatsapp():
+    print("[i] Computing usage (WhatsApp)...")
     db_conn, db_cursor = getdbconnection()
 
     db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
@@ -609,98 +744,51 @@ def compute_usage():
             try:
                 if re.search(api_state.re_lang_filter_media, line) is None:
                     if re.match(api_state.re_lang_filter_log_syntax, line) is None:
-                        entry = ("unkown", datetime.date(2000, 1, 1), 0, 0, 0, 0, 0, 0, 0, "")
-
-                        if re.search(api_state.re_lang_filter_syntax, line) is not None:
-                            linesplit = line.split(" - ", 1)
-                            time = linesplit[0]
-                            hour_last = int(re.search(r"\, (\d{1,2})", time).group(1))
-                            date_last = datetime.datetime.strptime(time, api_state.lang_datetime)
-                            weekday_last = date_last.weekday()
-                            day_last = date_last.date()
-                            linesplit = linesplit[1].split(': ', 1)
-                            name_last = linesplit[0]
-                            linerest = linesplit[1]
+                        if re.match(api_state.re_lang_filter_syntax, line) is not None:
+                            msg_match = re.match(api_state.re_lang_filter_syntax, line)
+                            date_time = datetime.datetime.strptime(msg_match.group(1), api_state.lang_datetime)
+                            hour_last = date_time.hour
+                            weekday_last = date_time.weekday()
+                            day_last = date_time.date()
+                            linerest = line.split(': ', 1)[1]
+                            name_last = msg_match.group(3)
                         else:
                             linerest = line
 
-                        linesplit = linerest.split(" ")
-                        inter_punct = []
-                        inter_emoji = []
-                        filtered = []
-
-                        hyperlinks = []
-                        textemojis = []
-
-                        # handle hyperlinks
-                        for word in linesplit:
-                            hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
-                            if hyperlink is not None:
-                                hyperlinks.append(hyperlink.group(0))
-                                inter_punct.append(word[:hyperlink.span(0)[0]])
-                                inter_punct.append(word[hyperlink.span(0)[1]:])
-                            else:
-                                for part in re.split(r"(" + api_state.re_textemojis + r")", word):
-                                    if part in api_state.textemojis:
-                                        textemojis.append(part)
-                                    else:
-                                        for subpart in re.split(r"([^\wäöü]+)", part):
-                                            inter_punct.append(subpart)
-
-                        for word in inter_punct:
-                            for part in re.split(r"(" + api_state.re_lang_special_chars + r")", word):
-                                inter_emoji.append(part)
-
-                        for i, word in enumerate(inter_emoji):
-                            # handle keycap emoji sequences
-                            if i < len(inter_emoji) - 1 and len(inter_emoji[i + 1]) > 0 and ord(inter_emoji[i + 1][0]) == 0x20e3:
-                                if len(word) > 1:
-                                    filtered.append(word[:-1])
-                                filtered.append(word[-1] + inter_emoji[i + 1][0])
-                                inter_emoji[i + 1] = inter_emoji[i + 1][1:]
-                            else:
-                                if re.match(r"[\wäöü]+$", word) is None and re.match(api_state.re_lang_special_chars + r"+$", word) is None:
-                                    j = 0
-                                    while j < len(word):
-                                        toappend = word[j]
-                                        # handle multiple emojis joined by zero-width space
-                                        while (j < len(word) - 2 and ord(word[j + 1]) == 0x200d) or (j < len(word) - 2 and ord(word[j + 2]) == 0x200d):
-                                            if ord(word[j + 1]) == 0x200d:
-                                                toappend += word[j + 1:j + 3]
-                                                j += 2
-                                            else:
-                                                toappend += word[j + 1:j + 4]
-                                                j += 3
-                                                toappend += chr(0xfe0f)
-                                        # handle emojis with skin color modifier and regional identifiers
-                                        if j < len(word) - 1 and (isfitzpatrickemoji(word[j + 1]) or isregionalindicator(word[j + 1])):
-                                            toappend += word[j + 1]
-                                            j += 1
-                                        filtered.append(toappend)
-                                        j += 1
-                                else:
-                                    filtered.append(word)
-
-                        for word in filtered:
-                            if word != "\n" and word != "":
-                                if re.match(r'\w+$', word, re.UNICODE):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 1, 0, 0, 0, 0, word.lower())
-                                elif re.match(api_state.re_lang_special_chars, word):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 1, 0, 0, word)
-                                elif isemoji(word):
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word)
-                                else:
-                                    entry = (name_last, day_last, hour_last, weekday_last, 0, 0, 0, 0, 1, word)
-
-                                entries.append(entry)
-
-                        for word in hyperlinks:
-                            entries.append((name_last, day_last, hour_last, weekday_last, 0, 0, 0, 1, 0, word))
-                        for word in textemojis:
-                            entries.append((name_last, day_last, hour_last, weekday_last, 0, 1, 0, 0, 0, word))
+                        entries += parse_message_usage(linerest, name_last, day_last, hour_last, weekday_last)
 
             except Exception as e:
                 print("[!] Caught exception scanning ubw: " + str(e))
+
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-ubw"), entries)
+    db_conn.commit()
+    db_conn.close()
+
+
+def compute_usage_telegram():
+    print("[i] Computing usage (Telegram)...")
+    db_conn, db_cursor = getdbconnection()
+
+    with open(api_state.fp, encoding="utf-8") as f:
+        data = json.loads(f.read())
+
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
+
+    entries = []
+    for msg in data["messages"]:
+        dt = datetime.datetime.fromisoformat(msg["date"])
+        if msg["type"] == "message":
+            if not msg["from"]:
+                msg["from"] = "unknown"
+            if not "file" in msg:
+                if isinstance(msg["text"], list):
+                    for el in msg["text"]:
+                        if isinstance(el, dict):
+                            entries.append((msg["from"], dt.date().isoformat(), dt.hour, dt.weekday(), 0, 0, 0, 1, 0, el["text"]))
+                        else:
+                            entries += parse_message_usage(el, msg["from"], dt.date().isoformat(), dt.hour, dt.weekday())
+                else:
+                    entries += parse_message_usage(msg["text"], msg["from"], dt.date().isoformat(), dt.hour, dt.weekday())
 
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-ubw"), entries)
     db_conn.commit()
