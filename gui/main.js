@@ -136,7 +136,7 @@ function activitybyname() {
 
 function activityraw() {
     changemode(document.getElementById("btn_ar"));
-    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw", 0, document.getElementById("main_data"), []).querySelector("table");
+    var table = createtable("", "<tr><th name=\"name\">Name</th><th name=\"date\">Date</th><th name=\"time\">Time</th><th name=\"hour\">Hour</th><th name=\"weekday\">Weekday</th><th name=\"ispost\">Is Post?</th><th name=\"ismedia\">Is Media?</th><th name=\"islogmsg\">Is Logmsg?</th><th name=\"words\">Words</th><th name=\"chars\">Chars</th><th name=\"emojis\">Emojis</th><th name=\"puncts\">Punctuation</th></tr>", "actraw", 0, document.getElementById("main_data"), []).querySelector("table");
     table.refresh();
     maketablessortable(table, true);
 }
