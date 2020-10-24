@@ -45,7 +45,7 @@ class APIState():
         db_curs, db_conn = getdbconnection()
 
         if not len(list(db_curs.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='chats'"))):
-            db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer)")
+            db_curs.execute("CREATE TABLE 'chats' (prefix text, start_date text, end_date integer, total_msg integer, avg_msg_daily integer, lang text)")
 
         self.parse_config_file()
         self.setlang()
@@ -161,7 +161,7 @@ class APIState():
         end_date = list(db_curs.execute("SELECT date FROM '{}-act' ORDER BY date DESC LIMIT 1".format(self.table_prefix)))[0][0]
         total_days = (datetime.datetime.fromisoformat(end_date) - datetime.datetime.fromisoformat(start_date)).days + 1
 
-        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?)", (self.table_prefix, start_date, end_date, act_total, "{:.2f}".format(act_total / total_days)))
+        db_curs.execute("INSERT INTO 'chats' VALUES (?, ?, ?, ?, ?, ?)", (self.table_prefix, start_date, end_date, act_total, "{:.2f}".format(act_total / total_days), self.lang_global))
         db_conn.commit()
 
         return (0, "Successfully loaded file.", self.table_prefix)
