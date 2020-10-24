@@ -310,7 +310,7 @@ def get_usage_by_word():
     elif mode == "bytime":
         return json.dumps(([], [(word, [(el[0], el[1]) for el in ubw_db_request(word, "date", api_state, request)]) for word in words]))
     elif mode == "byname":
-        names = [el[0] for el in find_names()]
+        names = [el[0] for el in find_names(api_state)]
         return json.dumps((names, [(word, [el[1] for el in activity_db_pad(names, ubw_db_request(word, "name", api_state, request))]) for word in words]))
     elif mode == "total":
         return json.dumps([[word, list(db_cursor.execute("SELECT (SUM(isword) + SUM(isemoji) + SUM(ispunct) + SUM(isuncat)) as usage FROM '{}' WHERE word like ?".format(api_state.table_prefix + '-ubw'), (word, )))[0][0]] for word in words])
