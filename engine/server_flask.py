@@ -49,21 +49,20 @@ class APIState():
 
         self.parse_config_file()
         self.setlang()
+        self.loadstopwords()
 
-    def loadstopwords(self, lang="en"):
-        self.stopwords = []
-        save = False
+    def loadstopwords(self):
+        self.stopwords = dict()
+        lang_curr = ""
 
         try:
             f = open("stopwords.txt")
             for line in f:
-                if save and line == "":
-                    save = False
-                if save:
-                    stopwords.append(line.strip("\n"))
-                if re.match(r"\[(\w+)\]", line):
-                    if re.match(r"\[(\w+)\]$", line).group(1) == lang:
-                        save = True
+                if line[0] == "#":
+                    lang_curr = line[1:-1]
+                    self.stopwords[lang_curr] = []
+                else:
+                    self.stopwords[lang_curr].append(line.strip("\n"))
         except IOError:
             print("[!] Error while reading stopwords file!")
 
