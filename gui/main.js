@@ -193,7 +193,7 @@ function usagebyword() {
     maketablessortable(table_u);
     data_div.appendChild(div_upper);
     data_div.appendChild(div_lower);
-    add_filters([table_e, table_l, table_p, table_u, table_w], "ubw", "", false, true, true, true, false);
+    add_filters([table_e, table_l, table_p, table_u, table_w], "ubw", "", false, true, true, true, false, true);
 }
 
 function append_select_to_url(param, select, value = false) {
@@ -526,7 +526,7 @@ function add_time_select(parent_div, callback, id_additional = "", prepend = fal
     var timefilterdiv = document.createElement("div");
     timefilterdiv.setAttribute("class", "buttonlike secondary_control");
     timefilterdiv.setAttribute("style", "width: 300px; height: 34px; margin-right: 4px");
-    timefilterdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Filter by time</span><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 180px; border: none; padding: 7; vertical-align: top; border-radius: 4px\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:4px; margin-top: 10px\">"
+    timefilterdiv.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Filter by time</span><input id=\"timefilter" + id_additional + "\" name=\"dates\" type=\"text\" style=\"width: 180px; border: none; padding: 7; vertical-align: top; border-radius: 4px\"><input type=\"checkbox\" id=\"timefilter_check" + id_additional + "\" style=\"margin-left:4px; margin-top: 11px\">"
     if (prepend) {
         parent_div.insertBefore(timefilterdiv, parent_div.firstChild);
     } else {
@@ -549,7 +549,7 @@ function add_time_select(parent_div, callback, id_additional = "", prepend = fal
     }, callback);
 }
 
-function add_filters(outputs, spec_string, url_additional = "", filter_types = true, filter_names = true, filter_daytime = true, filter_weekday = true, aggregation_input = false) {
+function add_filters(outputs, spec_string, url_additional = "", filter_types = true, filter_names = true, filter_daytime = true, filter_weekday = true, aggregation_input = false, filter_stopword) {
     var ctrl_div = document.getElementById("controls");
     var checkbox_div = document.createElement("div");
     checkbox_div.setAttribute("style", "margin: 5px")
@@ -623,6 +623,14 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
         weekday_select = add_select(checkbox_div, weekday_options, weekday_labels, "Filter by weekday", "_wd");
     }
 
+    if (filter_stopword) {
+        var filter_stopword_div = document.createElement("div");
+        filter_stopword_div.setAttribute("class", "buttonlike secondary_control");
+        filter_stopword_div.innerHTML = "<span style=\"padding: 7px; padding-left: 12px\">Filter stopwords</span><select id='stopwordfilter_langselect' class='form-control' style='width: 65px'></select><input type=\"checkbox\" id=\"stopwordfilter_checkbox\" style=\"margin-left:4px; margin-top: 11px; margin-right: 10px\">";
+        checkbox_div.appendChild(filter_stopword_div);
+        getoptions("stopwordfilter_langselect", "default_lang");
+    }
+
     ctrl_div.appendChild(checkbox_div);
 
     if (filter_types) {
@@ -656,6 +664,12 @@ function add_filters(outputs, spec_string, url_additional = "", filter_types = t
         }
         if (filter_weekday) {
             url += append_select_to_url("weekdayfilter", weekday_select, true);
+        }
+        if (filter_stopword) {
+            if (document.getElementById("stopwordfilter_checkbox").checked) {
+                var sel = document.getElementById("stopwordfilter_langselect");
+                url += "&filterstopwords=true&filterstopwords_lang=" + sel.options[sel.selectedIndex].value;
+            }
         }
         if (document.getElementById("timefilter_check").checked) {
             url += "&timefilter=" + $('#timefilter').data("daterangepicker").startDate.format("YYYY-MM-DD") + "t" + $('#timefilter').data("daterangepicker").endDate.format("YYYY-MM-DD")

@@ -1,4 +1,5 @@
 import re
+import json
 import math
 import sqlite3
 import datetime
@@ -150,10 +151,22 @@ def ubc_db_request(api_state, request):
     stop = param_to_bool(request.args.get("stop"))
     asc = param_to_bool(request.args.get("asc"))
     chartype = param_to_string(request.args.get("type"))
+    filterstopwords = param_to_bool(request.args.get("filterstopwords"))
+    stopwordslang = param_to_string(request.args.get("filterstopwords_lang"))
+    if not stopwordslang:
+        stopwordslang = api_state.lang_global
     return_order = ["word", "usage"]
 
-    db_output = db_request("SELECT word, SUM(is{}) as usage FROM '{}' WHERE is{}=1".format(chartype, api_state.table_prefix + '-ubw', chartype), "word", [], request, True, " ORDER BY {} {} LIMIT {} OFFSET {}".format(return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
-    output_len = db_request("SELECT COUNT(*) FROM (SELECT word FROM '{}' WHERE is{}=1".format(api_state.table_prefix + '-ubw', chartype), "word", [], request, True, ")")
+    sql = "SELECT word, SUM(is{}) as usage FROM '{}' WHERE is{}=1".format(chartype, api_state.table_prefix + '-ubw', chartype)
+    sql_output = "SELECT COUNT(*) FROM (SELECT word FROM '{}' WHERE is{}=1".format(api_state.table_prefix + '-ubw', chartype)
+
+    if chartype == "word" and filterstopwords:
+        sql_add = " AND word NOT IN " + json.dumps(api_state.stopwords[stopwordslang]).replace("[", "(").replace("]", ")")
+        sql += sql_add
+        sql_output += sql_add
+
+    db_output = db_request(sql, "word", [], request, True, " ORDER BY {} {} LIMIT {} OFFSET {}".format(return_order[sort], SQL_ASC_BOOL[asc], str(pagesize), str(pagenumber * pagesize)))
+    output_len = db_request(sql_output, "word", [], request, True, ")")
 
     if chartype == "uncat":
         return output_len, [(str(c[0]) + " = " + (str((c[0].encode("ascii", "namereplace"))[3:-1]).lower())[2:-1] + " = " + str(c[0].encode("ascii", "backslashreplace").lower())[3:-1], c[1]) for c in db_output]
