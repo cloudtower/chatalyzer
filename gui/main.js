@@ -21,9 +21,16 @@ function toggleNewChatDialog(open) {
 
 function summary_init() {
     var main_table_body = document.getElementById("chats_table_body");
-    makeapicall("getchatssummary", (message) => { main_table_body.parentNode.row_widths = []; updatetable(main_table_body, message, minimal=true) });
     var stats_table_body = document.getElementById("stats_table_body");
     makeapicall("gettotalsummary", (message) => { stats_table_body.parentNode.row_widths = []; updatetable(stats_table_body, message, minimal=true) });
+    makeapicall("getchatssummary", (message) => {
+        main_table_body.parentNode.row_widths = [];
+        updatetable(main_table_body, message, minimal=true);
+        main_table_body.childNodes.forEach(tr => {
+            var newcell = tr.insertCell(6);
+            newcell.innerHTML = "<button onclick='loadfile(\"" + tr.childNodes[0].innerHTML + "\", true, false);location.href=\"main.html\"'><i class='fas fa-angle-right' style='font-size: 18px; color: #000000'></button>";
+        })
+    });
 }
 
 function resetNewChatDialog(resetnewfile = true) {
@@ -35,6 +42,10 @@ function resetNewChatDialog(resetnewfile = true) {
 }
 
 function getavailfiles(doloadfile = true, select_override = null) {
+    var fileloaded = sessionStorage.getItem("fileloaded");
+    if (fileloaded === "true") {
+        doloadfile = false;
+    }
     makeapicall("getavailfiles", function (message) {
         var data = JSON.parse(message);
         var file_display_div = document.getElementById("current_file_div");
@@ -51,6 +62,10 @@ function getavailfiles(doloadfile = true, select_override = null) {
             }
             if (select_override) {
                 sel.selectedIndex = data.indexOf(select_override);
+            } else {
+                makeapicall("getloadedfile", function(message) {
+                    sel.selectedIndex = data.indexOf(message);
+                })
             }
             sel.addEventListener("change", function () {
                 loadfile(sel.options[sel.selectedIndex].value, silent = true);
@@ -79,11 +94,12 @@ function getoptions(selectid, key) {
     })
 }
 
-function loadfile(prefix, silent = false) {
+function loadfile(prefix, silent = false, dochangemode = true) {
+    sessionStorage.setItem("fileloaded", true);
     makeapicall("loadfile?prefix=" + prefix, function (message) {
         if (!silent) swal(message)
     })
-    changemode(null, none = true);
+    if (dochangemode) changemode(null, none = true)
 }
 
 function loadnewfile() {
