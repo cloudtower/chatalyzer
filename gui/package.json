@@ -15,10 +15,8 @@
     "Chat"
   ],
   "author": "Lion Steger",
-  "devDependencies": {
-    "electron": "^7.1.10"
-  },
   "dependencies": {
+    "electron": "^7.2.4",
     "@fortawesome/fontawesome-free": "^5.5.0",
     "bootstrap": "^3.4.1",
     "bootstrap-multiselect": "^0.9.13-1",
