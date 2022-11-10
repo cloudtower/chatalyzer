@@ -16,7 +16,7 @@
   ],
   "author": "Lion Steger",
   "dependencies": {
-    "electron": "^7.2.4",
+    "electron": "^18.3.7",
     "@fortawesome/fontawesome-free": "^5.5.0",
     "bootstrap": "^3.4.1",
     "bootstrap-multiselect": "^0.9.13-1",
