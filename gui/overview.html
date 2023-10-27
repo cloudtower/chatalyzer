@@ -1,0 +1,60 @@
+<html>
+
+<head>
+    <meta charset="uft-8">
+    <script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="node_modules/chart.js/dist/Chart.js"></script>
+    <script src="main.js"></script>
+    <script src="overview.js"></script>
+    <script>
+        window.onload = (event) => {
+            getprocessingoptions();
+            getavailfiles();
+            bynamepie();
+        }
+    </script>
+    <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
+    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <div id="controls">
+        <div style="margin: 5px;" id="primary_controls">
+            <button id="btn_options" class="btn" onclick="toggleSidebar(true)"><i class="fas fa-bars" style="font-size: 20px; color: #000000"></i></button>
+            <div id="current_file_div" style="display: inline-block"><span>Loaded File: </span><span id="current_file_display"></span></div>
+        </div>
+    </div>
+
+    <div id="sidenav_main" class="sidenav">
+        <a class="closebtn" onclick="toggleSidebar(false)">&times;</a>
+        <a href="options.html"><i class="fas fa-cogs" style="font-size: 20px"></i> Settings</a>
+        <a onclick="toggleNewChatDialog(true)"><i class="fas fa-user-plus" style="font-size: 20px"></i> Add new Chat</a>
+        <a href="main.html"><i class="fa fa-chart-bar" style="font-size: 20px"></i> Analysis View</a>
+        <a href="summary.html"><i class="fas fa-list" style="font-size: 20px"></i> Chats Overview</a>
+    </div>
+
+    <div id="newchat_dialog" class="dialog">
+        <a class="closebtn" onclick="toggleNewChatDialog(false)">&times;</a>
+        <div id="newchat_dialog_main">
+            <button class="btn" onclick="pickfile()">Pick File</button>
+            <div class="buttonlike">
+                <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
+                <select class="form-control" id="langmain" onchange="switchlang()"></select>
+            </div>
+            <div class="buttonlike">
+                <select class="form-control" id="chatmain" onchange="switchlang()"></select>
+            </div>
+            <div class="buttonlike">
+                <select class="form-control" id="devmain" onchange="switchlang()"></select>
+            </div>
+            <div id="loadnewfile_submit_wrap" style="display: inline-block"><button class="btn" onclick="loadnewfile()">Submit</button></div>
+        </div>
+    </div>
+
+    <div id="main_data">
+
+    </div>
+</body>
+
+</html>
