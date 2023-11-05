@@ -90,12 +90,11 @@ function loadfile(prefix, silent = false, dochangemode = true) {
 function loadnewfile() {
     document.getElementById("loadnewfile_submit_wrap").innerHTML = "<div class=\"loader\"></div>";
     document.getElementById("loadnewfile_submit_wrap").setAttribute("class", "btn");
-    if (typeof newfile_name == "undefined" || newfile_name == undefined) {
-        swal("No file selected!");
-        resetNewChatDialog();
-    } else {
-        makeapicall("loadnewfile?filename=" + String(encodeURIComponent(newfile_name)), function (message) {
-            var data = JSON.parse(message);
+
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = function () {
+        if (this.readyState == 4 && this.status == 200) {
+            var data = JSON.parse(this.responseText);
             if (data[0] == 0) {
                 document.getElementById("loadnewfile_submit_wrap").innerHTML = "<i class='fas fa-check' style='color: #00bb00'></i>"
                 if (document.location.href.endsWith("summary.html")) {
@@ -111,15 +110,17 @@ function loadnewfile() {
                 swal("Chat format check failed. Please check if you selected the correct language.")
                 resetNewChatDialog(false);
             }
-        })
-    }
-}
-
-function pickfile() {
-    resetNewChatDialog();
-    dialog.showOpenDialog({ properties: ['openFile'] }).then((file) => {
-        newfile_name = file != undefined ? file.filePaths[0] : undefined;
-    });
+        }
+    };
+    var url = "loadnewfile";
+    url = url.replace("?", "&").replace("&", "?");
+    xhttp.open("POST", api_url + url, true);
+    
+    const formData = new FormData();
+    const fileInput = document.getElementById("input_newfile");
+    
+    formData.append("file", fileInput.files[0]);
+    xhttp.send(formData);
 }
 
 function append_select_to_url(param, select, value = false) {

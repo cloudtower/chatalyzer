@@ -8,6 +8,7 @@ import datetime
 
 from flask import Flask
 from flask import request
+from werkzeug.utils import secure_filename
 
 from chat_parsing import compute_usage_telegram, compute_usage_whatsapp, compute_activity_telegram, compute_activity_whatsapp
 from db_utils import *
@@ -37,6 +38,7 @@ DEFAULT_SETTINGS = {
 }
 
 server = Flask("chatalyzer_backend")
+server.config["UPLOAD_FOLDER"] = "uploads"
 
 class APIState():
     def __init__(self):
@@ -349,14 +351,23 @@ def set_setting():
 
 
 # load and analyze a new file
-@server.route("/api/loadnewfile")
+@server.route("/api/loadnewfile", methods=['POST'])
 def get_loadnewfile():
-    filename = request.args.get("filename")
-
-    if not filename:
+    if "file" not in request.files:
+        return json.dumps((2, "File is empty.", ""))
+    
+    file = request.files['file']
+    if file.filename == '':
         return json.dumps((1, "No file specified.", ""))
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(server.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
 
-    return json.dumps(api_state.loadnewfile(filename))
+    ret = json.dumps(api_state.loadnewfile(filepath))
+    os.remove(filepath)
+
+    return ret
 
 
 # return list of available, analyzed files

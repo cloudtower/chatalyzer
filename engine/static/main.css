@@ -119,11 +119,11 @@ td {
 
 .dialog {
     height: 50px;
-    width: 537px;
+    width: 757px;
     z-index: 2;
     position: absolute;
     top: 45%;
-    left: 40%;
+    left: 28%;
     background-color: #555555;
     display: none;
 }
