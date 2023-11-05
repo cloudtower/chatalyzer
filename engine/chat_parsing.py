@@ -1,7 +1,6 @@
-import re
+import re, os
 import json
 import datetime
-import sqlite3
 
 from db_utils import getdbconnection
 
@@ -47,7 +46,7 @@ def parse_message_activity(api_state, linerest):
     return (words, emojis, puncts)
 
 def compute_activity_whatsapp(api_state):
-    table_prefix_new = re.split(r"[\/\\]", api_state.fp)[-1].split(".")[0]
+    table_prefix_new = os.path.basename(api_state.fp).split(".")[0]
     table_prefix_new = re.sub(r"\W", "_", table_prefix_new)
     api_state.table_prefix = table_prefix_new
     print("[i] New table prefix: " + api_state.table_prefix)
