@@ -4,7 +4,7 @@ import math
 import sqlite3
 import datetime
 
-from html.parser import HTMLParser
+import html
 
 ACT_COLUMNAMES = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts"]
 ACT_RETURN_ORDER = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
@@ -92,7 +92,7 @@ def db_request(sql, group_by, params, request, setand=False, sql_postfix=""):
 
     person_filter = request.args.get("namefilter")
     if person_filter:
-        person_filter = HTMLParser().unescape(person_filter)
+        person_filter = html.unescape(person_filter)
         setand, sql = sql_and(setand, sql)
         sql += " name=?"
         params += [person_filter]
