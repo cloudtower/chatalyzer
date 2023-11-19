@@ -462,4 +462,9 @@ def getresponsetimes():
 api_state = APIState()
 
 if __name__ == "__main__":
-    server.run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bind", default="127.0.0.1")
+    parser.add_argument("--port", default=5000)
+    args = parser.parse_args()
+
+    server.run(host=args.bind, port=args.port)
