@@ -3,6 +3,6 @@
 /engine/__pycache__
 /deprecated
 *.db
-/gui/node_modules
+/engine/static/node_modules
 /engine/dist
 /engine/build
