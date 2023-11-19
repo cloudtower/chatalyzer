@@ -2,12 +2,12 @@
 
 import re
 import os
-import sys
+import argparse
 import json
 import datetime
 
 from flask import Flask
-from flask import request
+from flask import request, redirect
 from werkzeug.utils import secure_filename
 
 from chat_parsing import compute_usage_telegram, compute_usage_whatsapp, compute_activity_telegram, compute_activity_whatsapp
@@ -167,6 +167,11 @@ class APIState():
         db_conn.commit()
 
         return (0, "Successfully loaded file.", self.table_prefix)
+
+
+@server.route("/")
+def main():
+    return redirect("/static/main.html")
 
 
 @server.route("/api/getloadedfile")
