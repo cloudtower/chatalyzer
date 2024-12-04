@@ -1,4 +1,4 @@
-api_url = "http://127.0.0.1:5000/api/";
+api_url = "../api/";
 
 function toggleSidebar(open) {
     if (open) {
@@ -27,35 +27,39 @@ function resetNewChatDialog(resetnewfile = true) {
 }
 
 function getavailfiles(doloadfile = true, select_override = null) {
-    var fileloaded = sessionStorage.getItem("fileloaded");
-    if (fileloaded === "true") {
-        doloadfile = false;
-    }
-    makeapicall("getavailfiles", function (message) {
-        var data = JSON.parse(message);
-        var file_display_div = document.getElementById("current_file_div");
-        if (data.length == 0) {
-            file_display_div.innerHTML = "<button class=\"btn\" style=\"background-color: #ffffff\" onclick=\"toggleNewChatDialog(true)\">Load new Chat</button>"
-            document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = true))
-        } else {
-            document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = false))
-            file_display_div.innerHTML = "";
-            var sel = add_select(file_display_div, data, data, "Chat", id_additional = "", prepend = "", empty_option = false);
-            sel.setAttribute("id", "chat_sel");
-            if (doloadfile) {
-                loadfile(sel.options[sel.selectedIndex].value, silent = true);
-            }
-            if (select_override) {
-                sel.selectedIndex = data.indexOf(select_override);
+    makeapicall("getloadedfile", function (message) {
+        loadedfile = message != "-";
+        if (loadedfile) {
+            doloadfile = false;
+        }
+
+        makeapicall("getavailfiles", function (message2) {
+            var data = JSON.parse(message2);
+            var file_display_div = document.getElementById("current_file_div");
+            if (data.length == 0) {
+                file_display_div.innerHTML = "<button class=\"btn\" style=\"background-color: #ffffff\" onclick=\"toggleNewChatDialog(true)\">Load new Chat</button>"
+                document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = true))
             } else {
-                makeapicall("getloadedfile", function(message) {
-                    sel.selectedIndex = data.indexOf(message);
+                document.getElementById("primary_controls").querySelectorAll(".mode_btn").forEach((button) => (button.disabled = false))
+                file_display_div.innerHTML = "";
+                var sel = add_select(file_display_div, data, data, "Chat", id_additional = "", prepend = "", empty_option = false);
+                sel.setAttribute("id", "chat_sel");
+                if (doloadfile) {
+                    loadfile(sel.options[sel.selectedIndex].value, silent = true);
+                    //sel.value = sel.options[0].value;
+                }
+                if (select_override) {
+                    sel.selectedIndex = data.indexOf(select_override);
+                } else {
+                    makeapicall("getloadedfile", function(message) {
+                        sel.selectedIndex = data.indexOf(message);
+                    })
+                }
+                sel.addEventListener("change", function () {
+                    loadfile(sel.options[sel.selectedIndex].value, silent = true);
                 })
             }
-            sel.addEventListener("change", function () {
-                loadfile(sel.options[sel.selectedIndex].value, silent = true);
-            })
-        }
+        })
     })
 }
 
@@ -82,7 +86,7 @@ function getoptions(selectid, key) {
 function loadfile(prefix, silent = false, dochangemode = true) {
     sessionStorage.setItem("fileloaded", true);
     makeapicall("loadfile?prefix=" + prefix, function (message) {
-        if (!silent) swal(message)
+        if (!silent) Swal.fire(message)
     })
     if (dochangemode) changemode(null, none = true)
 }
@@ -104,10 +108,10 @@ function loadnewfile() {
                     loadfile(data[2], true);
                 }
             } else if (data[0] == 1) {
-                swal(data[1]);
+                Swal.fire(data[1]);
                 resetNewChatDialog(false);
             } else if (data[0] == 2) {
-                swal("Chat format check failed. Please check if you selected the correct language.")
+                Swal.fire("Chat format check failed. Please check if you selected the correct language.")
                 resetNewChatDialog(false);
             }
         }
@@ -181,7 +185,7 @@ function updatetable(tbody, message, minimal=false, deletable=false) {
             if (minimal) { content[i][j] = content[i][j] == null ? 0 : content[i][j]}
             if (table.make_emoji >= 0 && j == table.make_emoji) {
                 var new_cell = row.insertCell(j + offset);
-                new_cell.innerHTML = emojione.toImage(String(content[i][j]));
+                new_cell.innerHTML = joypixels.toImage(String(content[i][j]));
             } else {
                 var new_cell = row.insertCell(j + offset);
                 new_cell.innerHTML = content[i][j];

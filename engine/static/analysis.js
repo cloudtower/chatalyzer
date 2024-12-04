@@ -136,7 +136,7 @@ function statsbyword() {
 
     var time_select = add_time_select(chart_div, update_fun, "", true);
 
-    search_input.addEventListener("change", (() => {newentry = String(encodeURI(emojione.shortnameToUnicode(search_input.value.toLowerCase()))); totalusage_div.entries.push(newentry); search_input.value = ""; }))
+    search_input.addEventListener("change", (() => {newentry = String(encodeURI(joypixels.shortnameToUnicode(search_input.value.toLowerCase()))); totalusage_div.entries.push(newentry); search_input.value = ""; }))
     data_div.querySelectorAll("select").forEach((select) => select.addEventListener("change", update_fun));
     data_div.querySelectorAll("input").forEach((select) => select.addEventListener("change", update_fun));
 }

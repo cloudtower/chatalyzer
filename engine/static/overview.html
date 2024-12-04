@@ -2,8 +2,8 @@
 
 <head>
     <meta charset="uft-8">
-    <script src="node_modules/sweetalert/dist/sweetalert.min.js"></script>
-    <script src="node_modules/chart.js/dist/Chart.js"></script>
+    <script src="js/sweetalert.min.js"></script>
+    <script src="js/chart.umd.min.js"></script>
     <script src="main.js"></script>
     <script src="overview.js"></script>
     <script>
@@ -13,8 +13,8 @@
             bynamepie();
         }
     </script>
-    <link rel="stylesheet" href="node_modules/@fortawesome/fontawesome-free/css/all.css">
-    <link rel="stylesheet" href="node_modules/bootstrap/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="css/fontawesome.css">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="main.css">
 </head>
 
@@ -37,7 +37,7 @@
     <div id="newchat_dialog" class="dialog">
         <a class="closebtn" onclick="toggleNewChatDialog(false)">&times;</a>
         <div id="newchat_dialog_main">
-            <button class="btn" onclick="pickfile()">Pick File</button>
+            <input style="display: inline-flex" class="btn buttonlike" type="file" id="input_newfile">
             <div class="buttonlike">
                 <i class="fa fa-globe" style="padding: 10px" aria-hidden="true"></i>
                 <select class="form-control" id="langmain" onchange="switchlang()"></select>

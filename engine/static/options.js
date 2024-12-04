@@ -24,5 +24,5 @@ function get_all_options() {
 }
 
 function set_option(key, value) {
-    makeapicall("setoption?key=" + key + "&value=" + value);
+    makeapicall("setoption?key=" + key + "&value=" + value, function() {});
 }
