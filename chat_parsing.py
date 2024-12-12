@@ -1,7 +1,6 @@
 import re, os
 import json
 import datetime
-import random
 
 from db_utils import getdbconnection
 
@@ -273,7 +272,6 @@ def compute_usage_whatsapp(api_state):
                         if re.match(api_state.re_lang_filter_syntax, line) is not None:
                             msg_match = re.match(api_state.re_lang_filter_syntax, line)
                             date_time = datetime.datetime.strptime(msg_match.group(1), api_state.lang_datetime)
-                            date_time = datetime.datetime(2024, 1, 1, 0, 0, 0)
                             hour_last = date_time.hour
                             weekday_last = date_time.weekday()
                             day_last = date_time.date()
@@ -287,7 +285,6 @@ def compute_usage_whatsapp(api_state):
             except Exception as e:
                 print("[!] Caught exception scanning ubw: " + str(e))
 
-    random.shuffle(entries)
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-ubw"), entries)
     db_conn.commit()
     db_conn.close()
