@@ -5,6 +5,7 @@ import os
 import argparse
 import json
 import datetime
+import webbrowser
 
 from flask import Flask
 from flask import request, redirect
@@ -467,4 +468,5 @@ if __name__ == "__main__":
     parser.add_argument("--port", default=5000)
     args = parser.parse_args()
 
+    webbrowser.open_new_tab("http://localhost:5000")
     server.run(host=args.bind, port=args.port)
