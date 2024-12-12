@@ -14,7 +14,7 @@ from werkzeug.utils import secure_filename
 from chat_parsing import compute_usage_telegram, compute_usage_whatsapp, compute_activity_telegram, compute_activity_whatsapp
 from db_utils import *
 
-DEFAULT_SETTINGS_FILE = "../settings.conf"
+DEFAULT_SETTINGS_FILE = "settings.conf"
 DEFAULT_SETTINGS = {
     "default_lang": {
         "desc": "Default Language",
@@ -233,8 +233,6 @@ def get_activity_by_name():
     else:
         db_output = list(db_cursor.execute("SELECT name as identifier, SUM(ispost) AS smessages, SUM(ismedia) as smedia, SUM(islogmsg) as slogmsg, SUM(words) AS swords, SUM(chars) as scharacters, SUM(emojis) semojis, SUM(puncts) as spuncts FROM '{}' GROUP BY name ORDER BY {} {} LIMIT {} OFFSET {}".format((api_state.table_prefix + '-act'), ACT_RETURN_ORDER[sort], SQL_ASC_BOOL[asc], pagesize, (pagenumber * pagesize))))
         return json.dumps((list(db_cursor.execute("SELECT COUNT(*) FROM (SELECT name FROM '{}' GROUP BY name)".format(api_state.table_prefix + '-act')))[0], db_output))
-
-    db_conn.close()
 
 
 @server.route("/api/abw")
@@ -458,6 +456,12 @@ def getresponsetimes():
             dt_last = line[1] + " " + line[2]
 
     return json.dumps(data)
+
+
+@server.after_request
+def add_header(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    return response
 
 
 api_state = APIState()
