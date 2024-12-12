@@ -1,8 +1,9 @@
 */.vscode
 .vscode
-/engine/__pycache__
-/deprecated
+__pycache__
 *.db
-/engine/static/node_modules
-/engine/dist
-/engine/build
+dist
+build
+ToDo.txt
+chats
+uploads
