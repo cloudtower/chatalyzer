@@ -54,7 +54,7 @@ def compute_activity_whatsapp(api_state):
     print("[i] Computing activity (WhatsApp)...")
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, message text)".format(api_state.table_prefix + "-act"))
 
     weekday_last = 0
     hour_last = 0
@@ -69,7 +69,7 @@ def compute_activity_whatsapp(api_state):
     with open(api_state.fp, encoding="utf-8") as f:
         for line in f:
             try:
-                entry = ("unknown", datetime.date(2000, 1, 1), "00:00", 0, 0, 0, 0, 0, 0, 0, 0, 0)
+                entry = ("unknown", datetime.date(2000, 1, 1), "00:00", 0, 0, 0, 0, 0, 0, 0, 0, 0, "")
 
                 is_message = re.match(api_state.re_lang_filter_syntax, line) is not None
                 is_logmsg = re.match(api_state.re_lang_filter_log_syntax, line) is not None
@@ -89,7 +89,7 @@ def compute_activity_whatsapp(api_state):
                     day_last = date_time.date()
 
                 if is_logmsg:
-                    log_msgs.append((line, day_last, time_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0))
+                    log_msgs.append((line, day_last, time_last, hour_last, weekday_last, 0, 0, 1, 0, 0, 0, 0, line))
                 else:
                     if is_message:
                         name_last = msg_match.group(3)
@@ -99,17 +99,17 @@ def compute_activity_whatsapp(api_state):
                             names.append(name_last)
 
                         if is_media:
-                            entry = (name_last, day_last, time_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0)
+                            entry = (name_last, day_last, time_last, hour_last, weekday_last, 0, 1, 0, 0, 0, 0, 0, linerest)
                     else:
                         is_cont = True
                         linerest = line
 
                     if not is_media:
                         words, emojis, puncts = parse_message_activity(api_state, linerest)
-                        entry = (name_last, day_last, time_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts)
+                        entry = (name_last, day_last, time_last, hour_last, weekday_last, int(is_message), 0, 0, words, len(linerest), emojis, puncts, linerest)
 
                     if is_cont:
-                        entries[-1] = entries[-1][:8] + (entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10], entries[-1][11] + entry[11])
+                        entries[-1] = entries[-1][:8] + (entries[-1][8] + entry[8], entries[-1][9] + entry[9], entries[-1][10] + entry[10], entries[-1][11] + entry[11], entries[-1][12] + entry[12])
                     else:
                         entries.append(entry)
             except Exception as e:
@@ -120,7 +120,7 @@ def compute_activity_whatsapp(api_state):
             if name in element[0]:
                 entries.append((name, ) + element[1:])
 
-    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
 
@@ -151,23 +151,26 @@ def compute_activity_telegram(api_state):
                 entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 1, 0, 0, 0, 0, 0))
             else:
                 if isinstance(msg["text"], list):
-                    words, emojis, puncts, chars = 0, 0, 0, 0
+                    words, emojis, puncts, chars, msg = 0, 0, 0, 0, ""
                     for el in msg["text"]:
                         if isinstance(el, dict):
                             words += 1
                             chars += len(el["text"])
+                            msg += el["text"]
                         else:
                             words_new, emojis_new, puncts_new = parse_message_activity(api_state, el)
                             words += words_new
                             emojis += emojis_new
                             puncts += puncts_new
                             chars += len(el)
+                            msg += el
                 else:
                     words, emojis, puncts = parse_message_activity(api_state, msg["text"])
                     chars = len(msg["text"])
-                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 1, 0, 0, words, chars, emojis, puncts))
+                    msg = msg["text"]
+                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 1, 0, 0, words, chars, emojis, puncts, msg))
 
-    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
+    db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
     db_conn.close()
 

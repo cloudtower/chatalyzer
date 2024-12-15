@@ -193,7 +193,7 @@ def get_activity_raw():
     sort = param_to_int(request.args.get("sortby"))
     filters = json.loads(request.args.get("filters"))
 
-    sql = "SELECT * FROM '{}' ".format(api_state.table_prefix + '-act')
+    sql = "SELECT {} FROM '{}' ".format(", ".join(ACT_COLUMNAMES[:-1]), api_state.table_prefix + '-act')
 
     params = []
     first = True

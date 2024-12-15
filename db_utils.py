@@ -6,7 +6,7 @@ import datetime
 
 import html
 
-ACT_COLUMNAMES = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts"]
+ACT_COLUMNAMES = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islogmsg", "words", "chars", "emojis", "puncts", "msg"]
 ACT_RETURN_ORDER = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
 SQL_ASC_BOOL = {True: "ASC", False: "DESC"}
 
