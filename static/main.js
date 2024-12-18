@@ -113,6 +113,9 @@ function loadnewfile() {
             } else if (data[0] == 2) {
                 Swal.fire("Chat format check failed. Please check if you selected the correct language.")
                 resetNewChatDialog(false);
+            } else if (data[0] == 3) {
+                Swal.fire("Chat name already exists in database. Please rename the file (or name property in Telegram chat).")
+                resetNewChatDialog(false);
             }
         }
     };

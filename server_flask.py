@@ -150,12 +150,15 @@ class APIState():
 
         self.fp = filename
 
-        if self.chat_global == "telegram":
-            compute_activity_telegram(self)
-            compute_usage_telegram(self)
-        else:
-            compute_activity_whatsapp(self)
-            compute_usage_whatsapp(self)
+        try:
+            if self.chat_global == "telegram":
+                compute_activity_telegram(self)
+                compute_usage_telegram(self)
+            else:
+                compute_activity_whatsapp(self)
+                compute_usage_whatsapp(self)
+        except sqlite3.OperationalError:
+            return (3, "Chat already added!")
 
         db_conn, db_curs = getdbconnection()
 
