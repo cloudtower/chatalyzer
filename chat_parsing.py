@@ -3,7 +3,7 @@ import json
 import datetime
 import urllib.parse
 
-from db_utils import getdbconnection
+from db_utils import getdbconnection, SQL_CREATE_ACT, SQL_CREATE_USAGE
 
 def parse_message_activity(api_state, linerest):
     linesplit = linerest.split(" ")
@@ -55,7 +55,7 @@ def compute_activity_whatsapp(api_state):
     print("[i] Computing activity (WhatsApp)...")
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, message text)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute(SQL_CREATE_ACT.format(api_state.table_prefix + "-act"))
 
     weekday_last = 0
     hour_last = 0
@@ -138,7 +138,7 @@ def compute_activity_telegram(api_state):
     except KeyError:
         api_state.table_prefix = "Saved messages"
     print("[i] New table prefix: " + api_state.table_prefix)
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, message text)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute(SQL_CREATE_ACT.format(api_state.table_prefix + "-act"))
 
     entries = []
     for msg in data["messages"]:
@@ -259,7 +259,7 @@ def compute_usage_whatsapp(api_state):
     print("[i] Computing usage (WhatsApp)...")
     db_conn, db_cursor = getdbconnection()
 
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
+    db_cursor.execute(SQL_CREATE_USAGE.format(api_state.table_prefix + "-ubw"))
 
     weekday_last = 0
     hour_last = 0
@@ -301,7 +301,7 @@ def compute_usage_telegram(api_state):
     with open(api_state.fp, encoding="utf-8") as f:
         data = json.loads(f.read())
 
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)".format(api_state.table_prefix + "-ubw"))
+    db_cursor.execute(SQL_CREATE_USAGE.format(api_state.table_prefix + "-ubw"))
 
     entries = []
     for msg in data["messages"]:

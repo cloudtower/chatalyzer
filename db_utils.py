@@ -10,6 +10,8 @@ ACT_COLUMNAMES = ["name", "date", "hour", "weekday", "ispost", "ismedia", "islog
 ACT_RETURN_ORDER = ["identifier", "smessages", "smedia", "slogmsg", "swords", "scharacters", "semojis", "spuncts"]
 SQL_ASC_BOOL = {True: "ASC", False: "DESC"}
 
+SQL_CREATE_ACT = "CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, message text)"
+SQL_CREATE_USAGE = "CREATE TABLE '{}' (name text, date text, hour integer, weekday integer, isword integer, isemoji integer, ispunct integer, islink integer, isuncat integer, word text)"
 
 def find_names(api_state):
     _, db_cursor = getdbconnection()
