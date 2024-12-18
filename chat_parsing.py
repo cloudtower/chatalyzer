@@ -138,38 +138,38 @@ def compute_activity_telegram(api_state):
     except KeyError:
         api_state.table_prefix = "Saved messages"
     print("[i] New table prefix: " + api_state.table_prefix)
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, meessage text)".format(api_state.table_prefix + "-act"))
 
     entries = []
     for msg in data["messages"]:
         dt = datetime.datetime.fromisoformat(msg["date"])
         if msg["type"] == "service":
-            entries.append(("Telegram", dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 0, 1, 0, 0, 0, 0))
+            entries.append(("Telegram", dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 0, 1, 0, 0, 0, 0, ""))
         else:
             if not msg["from"]:
                 msg["from"] = "unknown"
             if "file" in msg:
-                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 1, 0, 0, 0, 0, 0))
+                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 0, 1, 0, 0, 0, 0, 0, ""))
             else:
                 if isinstance(msg["text"], list):
-                    words, emojis, puncts, chars, msg = 0, 0, 0, 0, ""
+                    words, emojis, puncts, chars, message = 0, 0, 0, 0, ""
                     for el in msg["text"]:
                         if isinstance(el, dict):
                             words += 1
                             chars += len(el["text"])
-                            msg += el["text"]
+                            message += el["text"]
                         else:
                             words_new, emojis_new, puncts_new = parse_message_activity(api_state, el)
                             words += words_new
                             emojis += emojis_new
                             puncts += puncts_new
                             chars += len(el)
-                            msg += el
+                            message += el
                 else:
                     words, emojis, puncts = parse_message_activity(api_state, msg["text"])
                     chars = len(msg["text"])
-                    msg = msg["text"]
-                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 1, 0, 0, words, chars, emojis, puncts, msg))
+                    message = msg["text"]
+                entries.append((msg["from"], dt.date().isoformat(), dt.time().strftime("%H:%M"), dt.hour, dt.weekday(), 1, 0, 0, words, chars, emojis, puncts, message))
 
     db_cursor.executemany("INSERT INTO '{}' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)".format(api_state.table_prefix + "-act"), entries)
     db_conn.commit()
