@@ -138,7 +138,7 @@ def compute_activity_telegram(api_state):
     except KeyError:
         api_state.table_prefix = "Saved messages"
     print("[i] New table prefix: " + api_state.table_prefix)
-    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, meessage text)".format(api_state.table_prefix + "-act"))
+    db_cursor.execute("CREATE TABLE '{}' (name text, date text, time text, hour integer, weekday integer, ispost integer, ismedia integer, islogmsg integer, words integer, chars integer, emojis integer, puncts integer, message text)".format(api_state.table_prefix + "-act"))
 
     entries = []
     for msg in data["messages"]:
