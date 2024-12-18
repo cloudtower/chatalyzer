@@ -1,6 +1,7 @@
 import re, os
 import json
 import datetime
+import urllib.parse
 
 from db_utils import getdbconnection
 
@@ -189,7 +190,7 @@ def parse_message_usage(api_state, linerest, name_last, day_last, hour_last, wee
     for word in linesplit:
         hyperlink = re.search(r"https?://[a-zA-Z0-9_!\*'\(\);%@\&=\+\$,/\?\#\[\]\.\~\-]*", word)
         if hyperlink is not None:
-            hyperlinks.append(hyperlink.group(0))
+            hyperlinks.append(urllib.parse.urlparse(hyperlink.group(0)).hostname)
             inter_punct.append(word[:hyperlink.span(0)[0]])
             inter_punct.append(word[hyperlink.span(0)[1]:])
         else:
