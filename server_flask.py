@@ -196,17 +196,23 @@ def get_activity_raw():
     sort = param_to_int(request.args.get("sortby"))
     filters = json.loads(request.args.get("filters"))
 
-    sql = "SELECT {} FROM '{}' ".format(", ".join(ACT_COLUMNAMES[:-1]), api_state.table_prefix + '-act')
+    sql = "SELECT * FROM '{}' ".format(api_state.table_prefix + '-act')
 
     params = []
     first = True
     for key in filters.keys():
         if first:
             first = False
-            sql += " WHERE {}=?".format(re.sub(r"\W", "_", key))
+            sql += " WHERE "
         else:
-            sql += " AND {}=?".format(re.sub(r"\W", "_", key))
-        params.append(filters[key])
+            sql += " AND "
+
+        if key == "message":
+            sql += f"message LIKE ?"
+            params.append(f"%{filters[key]}%")
+        else:
+            sql += "{}=?".format(re.sub(r"\W", "_", key))
+            params.append(filters[key])
 
     _, db_cursor = getdbconnection()
 
