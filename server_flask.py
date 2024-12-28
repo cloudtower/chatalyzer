@@ -85,9 +85,9 @@ class APIState():
             self.lang_datetime = "%m/%d/%y, %H:%M"
         elif self.lang_global == "de":
             if self.dev_global == "ios":
-                self.re_lang_filter_syntax = r"\[((\d{2}\.){2}\d{2}, \d{2}:\d{2}:\d{2})\] ([^\:]+): .*"
+                self.re_lang_filter_syntax = r".?\[((\d{2}\.){2}\d{2}, \d{2}:\d{2}:\d{2})\] ([^\:]+): .*"
                 self.re_lang_filter_log_syntax = r"\[((\d{2}\.){2}\d{2}, \d{2}:\d{2}:\d{2})\] ([^\:]+)$"
-                self.re_lang_filter_media = r"<Video weggelassen>|<Audio weggelassen>|<Bild weggelassen>"
+                self.re_lang_filter_media = r"Video weggelassen|Audio weggelassen|Bild weggelassen"
                 self.lang_datetime = "%d.%m.%y, %H:%M:%S"
             else:
                 self.re_lang_filter_syntax = r"((\d{2}\.){2}\d{2}, \d{2}:\d{2}) - ([^\:]+): .*"
